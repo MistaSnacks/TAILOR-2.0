@@ -1,16 +1,19 @@
 "use client";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { ClothUploader } from "../components/ClothUploader";
 import { FormExplorer } from "../components/FormExplorer";
 
 export default function FormPage() {
   const view = useQuery(api.form.formView);
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", fontFamily: "system-ui" }}>
-      <h1>The Form — your unified career profile</h1>
-      <ClothUploader />
+    <>
+      <div className="eyebrow">profile</div>
+      <h1>The <em>Form</em></h1>
+      <p className="lede">
+        Your whole corpus, deduped and unified into one canonical profile — the dress form every
+        Fitting is built on. Each thread traces back to the cloth it came from.
+      </p>
       <FormExplorer threads={view?.threads ?? []} skills={view?.skills ?? []} />
-    </main>
+    </>
   );
 }

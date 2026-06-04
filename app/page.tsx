@@ -1,34 +1,56 @@
 "use client";
-import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import Link from "next/link";
+import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { DocumentList } from "./components/DocumentList";
+import { useSession } from "./SessionProvider";
 
-export default function Page() {
-  const documents = useQuery(api.documents.list) ?? [];
-  const create = useMutation(api.documents.recordDocument);
-  const [filename, setFilename] = useState("");
+export default function Atelier() {
+  const { session } = useSession();
+  const documents = useQuery(api.documents.list);
+  const view = useQuery(api.form.formView);
+
+  const stats = [
+    { num: documents?.length ?? 0, label: "Bolts of cloth", tech: "corpus_documents", href: "/cloth" },
+    { num: view?.threads.length ?? 0, label: "Threads", tech: "evidence_units", href: "/form" },
+    { num: 0, label: "Patterns", tech: "jobs", href: "/patterns" },
+    { num: 0, label: "Fittings", tech: "tailorings", href: "/fittings" },
+  ];
 
   return (
-    <main style={{ maxWidth: 640, margin: "40px auto", fontFamily: "system-ui" }}>
-      <h1>TAILOR — your cloth</h1>
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          if (!filename.trim()) return;
-          await create({ filename, mimeType: "application/pdf" });
-          setFilename("");
-        }}
-      >
-        <input
-          value={filename}
-          onChange={(e) => setFilename(e.target.value)}
-          placeholder="resume.pdf"
-        />
-        <button type="submit">Add document</button>
-      </form>
-      <p>Documents in your corpus:</p>
-      <DocumentList documents={documents} />
-    </main>
+    <>
+      <div className="eyebrow">workspace</div>
+      <h1>The <em>Atelier</em></h1>
+      <p className="lede">
+        Welcome back, {session?.name}. Your cloth is uploaded once and the Form is built once —
+        every Pattern you bring is cut from it.
+      </p>
+      <p className="creed">“A tailor alters the cloth you bring. They never weave fabric you don’t own.”</p>
+
+      <div className="grid cols-4" style={{ marginTop: 30 }}>
+        {stats.map((s) => (
+          <Link key={s.label} href={s.href} className="card stat">
+            <span className={"num" + (s.num === 0 ? " zero" : "")}>{s.num}</span>
+            <span className="label">{s.label}</span>
+            <span className="tech">{s.tech}</span>
+          </Link>
+        ))}
+      </div>
+
+      <h2 className="section-title">Start here</h2>
+      <div className="grid cols-2">
+        <Link href="/cloth" className="card">
+          <h3 style={{ fontSize: 20 }}>Upload your cloth →</h3>
+          <p style={{ color: "var(--ink-dim)", marginTop: 8, fontSize: 14 }}>
+            Résumés, memos, a LinkedIn export. TAILOR parses each one into threads and unifies them.
+          </p>
+        </Link>
+        <Link href="/patterns" className="card">
+          <h3 style={{ fontSize: 20 }}>Bring a Pattern →</h3>
+          <p style={{ color: "var(--ink-dim)", marginTop: 8, fontSize: 14 }}>
+            Paste a job description and cut a Fitting — a tailored résumé scored against it.
+          </p>
+        </Link>
+      </div>
+    </>
   );
 }

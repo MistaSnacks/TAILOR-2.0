@@ -2,13 +2,25 @@ import type { Doc } from "../../convex/_generated/dataModel";
 
 export function DocumentList({ documents }: { documents: Doc<"corpusDocuments">[] }) {
   if (documents.length === 0) {
-    return <p>No documents yet.</p>;
+    return (
+      <div className="empty">
+        <div className="mark">No documents yet.</div>
+        <p>Upload some cloth above to begin.</p>
+      </div>
+    );
   }
   return (
-    <ul>
+    <div className="rows">
       {documents.map((doc) => (
-        <li key={doc._id}>{doc.filename}</li>
+        <div className="row" key={doc._id}>
+          <span className={"badge " + doc.status}>{doc.status}</span>
+          <span className="file">{doc.filename}</span>
+          <span className="meta">
+            {doc.mimeType || "unknown"}
+            {doc.error ? ` · ${doc.error}` : ""}
+          </span>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }

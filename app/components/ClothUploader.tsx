@@ -28,17 +28,9 @@ export function ClothUploader() {
   }
 
   return (
-    <label
-      style={{
-        display: "inline-block",
-        padding: 12,
-        border: "1px dashed #888",
-        borderRadius: 8,
-        cursor: "pointer",
-        margin: "12px 0",
-      }}
-    >
-      {busy ? "Uploading…" : "Drop or choose your cloth (PDF / DOCX / TXT)"}
+    <label className={"dropzone" + (busy ? " busy" : "")}>
+      <span className="big">{busy ? "Uploading…" : "Drop your cloth here"}</span>
+      <span className="hint">{busy ? "reading the bytes" : "PDF · DOCX · TXT · click or drop"}</span>
       <input type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
     </label>
   );

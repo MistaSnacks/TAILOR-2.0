@@ -10,33 +10,46 @@ export interface FormSkill {
 
 export function FormExplorer({ threads, skills }: { threads: FormThread[]; skills: FormSkill[] }) {
   if (threads.length === 0) {
-    return <p>No threads yet. Upload some cloth to build your Form.</p>;
+    return (
+      <div className="empty">
+        <div className="mark">No threads yet.</div>
+        <p>Upload some cloth to build your Form.</p>
+      </div>
+    );
   }
   return (
-    <div>
-      <h2>Threads</h2>
-      <ul>
+    <>
+      <h2 className="section-title">
+        Threads{" "}
+        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-faint)" }}>
+          {threads.length}
+        </span>
+      </h2>
+      <div className="threads">
         {threads.map((t) => (
-          <li key={t.id}>
-            <span>{t.text}</span>{" "}
+          <div className="thread" key={t.id}>
+            <div className="claim">{t.text}</div>
             {t.sources.length > 0 && (
-              <small style={{ color: "#888" }}>— from {t.sources.join(", ")}</small>
+              <div className="prov">
+                from <b>{t.sources.join(", ")}</b>
+              </div>
             )}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
       {skills.length > 0 && (
         <>
-          <h2>Skills</h2>
-          <ul>
+          <h2 className="section-title">Skills</h2>
+          <div className="chips">
             {skills.map((s) => (
-              <li key={s.name}>
-                {s.name} <small style={{ color: "#888" }}>({s.variants.join(", ")})</small>
-              </li>
+              <span className="chip" key={s.name}>
+                {s.name}
+                {s.variants.length > 0 && <small>{s.variants.join(" · ")}</small>}
+              </span>
             ))}
-          </ul>
+          </div>
         </>
       )}
-    </div>
+    </>
   );
 }
