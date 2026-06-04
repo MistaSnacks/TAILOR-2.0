@@ -1,4 +1,5 @@
 import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 /** List corpus documents, newest first. */
@@ -28,12 +29,17 @@ export const recordDocument = mutation({
     if (args.filename.trim().length === 0) {
       throw new Error("filename must not be empty");
     }
-    return await ctx.db.insert("corpusDocuments", {
+    const documentId = await ctx.db.insert("corpusDocuments", {
       filename: args.filename,
       mimeType: args.mimeType,
       storageId: args.storageId,
       status: "uploaded",
     });
+    // Parse asynchronously once there are real bytes (skipped in tests w/o storageId).
+    if (args.storageId) {
+      await ctx.scheduler.runAfter(0, internal.parse.parseDocument, { documentId });
+    }
+    return documentId;
   },
 });
 

@@ -9,6 +9,8 @@
  */
 
 import type * as documents from "../documents.js";
+import type * as parse from "../parse.js";
+import type * as parsing_extractText from "../parsing/extractText.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +20,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   documents: typeof documents;
+  parse: typeof parse;
+  "parsing/extractText": typeof parsing_extractText;
 }>;
 
 /**
