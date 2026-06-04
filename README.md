@@ -1,7 +1,7 @@
 # TAILOR
 
 Job-specific resumes, cut only from cloth you actually own.
-See the design spec: `../docs/specs/2026-05-29-tailor-design.html`.
+See the design spec: `docs/specs/2026-05-29-tailor-design.html`.
 
 ## Prerequisites
 - Node 20+, a Convex account (or anonymous/local dev)

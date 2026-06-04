@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAILOR — Design Spec</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1f2630;
+    --border: #2d3441;
+    --ink: #e6edf3;
+    --ink-dim: #9aa4b1;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --amber: #d29922;
+    --red: #f85149;
+    --purple: #a371f7;
+    --thread: #d9a441;        /* tailoring accent: brass thread */
+    --code-bg: #0a0d12;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6; font-size: 15px;
+  }
+  .wrap { display: grid; grid-template-columns: 250px 1fr; max-width: 1500px; margin: 0 auto; }
+  /* TOC */
+  nav.toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 28px 18px; border-right: 1px solid var(--border); background: #0c0f14;
+  }
+  nav.toc .brand { font-weight: 800; letter-spacing: .22em; font-size: 18px; color: var(--ink); }
+  nav.toc .brand small { display:block; letter-spacing:.04em; font-weight:500; font-size:11px; color:var(--thread); margin-top:4px;}
+  nav.toc h4 { color: var(--ink-dim); text-transform: uppercase; font-size: 10.5px; letter-spacing: .08em; margin: 22px 0 8px; }
+  nav.toc a { display: block; color: var(--ink-dim); text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 13px; }
+  nav.toc a:hover { color: var(--ink); background: var(--panel-2); }
+  /* Main */
+  main { padding: 40px 52px 120px; max-width: 1100px; }
+  h1 { font-size: 34px; margin: 0 0 4px; letter-spacing: .04em; }
+  h1 .tm { color: var(--thread); }
+  .subtitle { color: var(--ink-dim); font-size: 15px; margin: 0 0 6px; }
+  .meta-line { color: var(--ink-dim); font-size: 12.5px; font-family: var(--mono); margin-bottom: 30px; }
+  section { margin: 46px 0; scroll-margin-top: 20px; }
+  h2 { font-size: 23px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 18px; }
+  h2 .num { color: var(--thread); font-family: var(--mono); font-size: 16px; margin-right: 10px; }
+  h3 { font-size: 16px; margin: 26px 0 8px; }
+  p { margin: 10px 0; }
+  a { color: var(--accent); }
+  code { font-family: var(--mono); background: var(--code-bg); padding: 1px 6px; border-radius: 5px; font-size: 13px; border: 1px solid var(--border); }
+  .lead { font-size: 16.5px; color: var(--ink); }
+  .creed {
+    border-left: 3px solid var(--thread); background: linear-gradient(90deg, rgba(217,164,65,.08), transparent);
+    padding: 14px 20px; margin: 22px 0; font-size: 16px; font-style: italic; color: var(--ink);
+  }
+  .callout {
+    background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  }
+  .callout.warn { border-left-color: var(--amber); }
+  .callout.crux { border-left-color: var(--thread); }
+  /* tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { text-transform: uppercase; font-size: 10.5px; letter-spacing: .06em; color: var(--ink-dim); border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: rgba(255,255,255,.018); }
+  td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .tterm { color: var(--thread); font-weight: 600; }
+  /* pills */
+  .verdict { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap;}
+  .v-allow  { background: rgba(63,185,80,.13); color: var(--green); }
+  .v-ban    { background: rgba(248,81,73,.13); color: var(--red); }
+  .v-flag   { background: rgba(163,113,247,.13); color: var(--purple); }
+  .v-v1     { background: rgba(63,185,80,.13); color: var(--green); }
+  .v-later  { background: rgba(210,153,34,.14); color: var(--amber); }
+  .v-out    { background: rgba(248,81,73,.13); color: var(--red); }
+  .v-info   { background: rgba(88,166,255,.14); color: var(--accent); }
+  /* cards */
+  .grid { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; margin: 16px 0; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 1100px) { .grid, .grid-3 { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .card h3 { margin-top: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .card .meta { color: var(--ink-dim); font-size: 12px; font-family: var(--mono); margin-bottom: 8px; }
+  .card ul { margin: 6px 0; padding-left: 18px; }
+  .card li { margin: 3px 0; font-size: 13.5px; }
+  /* code block */
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  pre code { background: none; border: none; padding: 0; }
+  .k { color: var(--purple); } .s { color: var(--green); } .c { color: var(--ink-dim); font-style: italic; } .p { color: var(--accent); }
+  /* fit bar */
+  .fit { display:flex; align-items:center; gap:12px; margin:6px 0; }
+  .fit .label { width: 180px; font-size: 13px; color: var(--ink-dim); }
+  .fit .track { flex:1; height: 10px; background: var(--panel-2); border-radius: 6px; overflow: hidden; border:1px solid var(--border); }
+  .fit .bar { height: 100%; background: linear-gradient(90deg, var(--thread), var(--green)); }
+  .fit .pct { width: 44px; text-align: right; font-family: var(--mono); font-size: 13px; }
+  svg { max-width: 100%; height: auto; display: block; margin: 18px 0; }
+  .figcap { color: var(--ink-dim); font-size: 12px; text-align: center; margin-top: -8px; }
+  ul.clean { list-style: none; padding-left: 0; }
+  ul.clean li { padding: 4px 0 4px 22px; position: relative; }
+  ul.clean li::before { content: "▸"; color: var(--thread); position: absolute; left: 4px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 30px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc">
+  <div class="brand">TAILOR<small>design spec · v1</small></div>
+  <h4>Overview</h4>
+  <a href="#thesis">Thesis</a>
+  <a href="#metaphor">The Tailoring Metaphor</a>
+  <a href="#scope">Scope &amp; Non-goals</a>
+  <h4>System</h4>
+  <a href="#architecture">1 · Architecture</a>
+  <a href="#datamodel">2 · Data Model</a>
+  <a href="#pipeline">3 · The Pipeline</a>
+  <h4>The Moat</h4>
+  <a href="#profile">4 · Canonical Career Profile</a>
+  <a href="#yield">5 · Inference Yield</a>
+  <a href="#grounding">6 · Grounding &amp; Alterations</a>
+  <a href="#verification">7 · Verification Gate</a>
+  <h4>Experience</h4>
+  <a href="#modal">8 · The Fitting Room (results)</a>
+  <a href="#fit">9 · Fit Score (ATS)</a>
+  <a href="#atelier">10 · The Atelier (workspace)</a>
+  <h4>Build</h4>
+  <a href="#api">11 · API Contracts</a>
+  <a href="#frontend">12 · React Frontend</a>
+  <a href="#errors">13 · Trust &amp; Failure</a>
+  <a href="#testing">14 · Testing</a>
+  <a href="#open">15 · Open Questions</a>
+</nav>
+
+<main>
+  <h1><span class="tm">TAILOR</span></h1>
+  <p class="subtitle">Job-specific resumes, cut only from cloth you actually own.</p>
+  <p class="meta-line">Design spec · 2026-05-29 · author: cmcmath89 · status: approved for planning · stack: React → Next.js frontend, Node/Claude backend</p>
+
+  <!-- THESIS -->
+  <section id="thesis">
+    <h2><span class="num">§</span>Thesis</h2>
+    <p class="lead">People who apply to many jobs re-tailor their resume by hand for every posting — slow, repetitive, and error-prone. TAILOR removes that work. You upload your real career corpus <em>once</em> — resumes, role variants, achievement memos, LinkedIn export, portfolio — and for every job description, TAILOR reads everything, surfaces the matches you'd have missed, phrases them to line up with what the employer is asking for, and shows you a tailored, export-ready resume with a fit score.</p>
+    <p>The product's whole promise is <strong>trust</strong>: every line is grounded in what you've actually done. Where the job asks for something you haven't named explicitly, TAILOR may <strong>infer</strong> it — but only when it can be honestly derived from your experience (you know Tableau, the job says "data visualization" — that's a fair, defensible claim). The inference yield is what widens your match to each posting without ever inventing experience you don't have.</p>
+    <div class="creed">"A tailor alters the cloth you bring. They never weave fabric you don't own." — the grounding rule, stated as the product's creed.</div>
+  </section>
+
+  <!-- METAPHOR -->
+  <section id="metaphor">
+    <h2><span class="num">§</span>The Tailoring Metaphor</h2>
+    <p>The product is named TAILOR, and the metaphor is load-bearing — it maps cleanly onto the trust model, which is the hard part of the system. UI/product surfaces use the tailoring vocabulary; the codebase uses the precise technical term in parentheses.</p>
+    <table>
+      <thead><tr><th>Product concept</th><th>Tailoring term (UI)</th><th>Technical term (code)</th><th>Why it fits</th></tr></thead>
+      <tbody>
+        <tr><td>All uploaded career docs</td><td class="tterm">The Cloth</td><td><code>corpus</code></td><td>The real material you bring; a tailor works only with cloth you own</td></tr>
+        <tr><td>Atomic verified claim</td><td class="tterm">Thread</td><td><code>evidence_unit</code></td><td>The smallest real piece; everything is stitched from these</td></tr>
+        <tr><td>A single uploaded file</td><td class="tterm">Bolt of cloth</td><td><code>corpus_document</code></td><td>One source the threads are pulled from</td></tr>
+        <tr><td>Canonicalized career profile</td><td class="tterm">The Form</td><td><code>canonical_profile</code></td><td>A dress form built to your measurements — deduped, normalized; every garment is fitted on it</td></tr>
+        <tr><td>Surfaced defensible matches</td><td class="tterm">The Reach</td><td><code>inference_yield</code></td><td>How far the Form can be honestly let out to meet a Pattern — the moat</td></tr>
+        <tr><td>Job description</td><td class="tterm">The Pattern</td><td><code>job</code></td><td>The measurements the finished garment must fit</td></tr>
+        <tr><td>One generated resume</td><td class="tterm">A Fitting</td><td><code>tailoring</code></td><td>One garment, cut for one Pattern</td></tr>
+        <tr><td>Inference (generalize / rephrase)</td><td class="tterm">Alteration</td><td><code>transformation</code></td><td>Reshaping cloth you have — never weaving new cloth</td></tr>
+        <tr><td>ATS / match score</td><td class="tterm">The Fit</td><td><code>fit_score</code></td><td>How well the garment matches the Pattern</td></tr>
+        <tr><td>Provenance trace</td><td class="tterm">Where the thread came from</td><td><code>provenance</code></td><td>Every alteration traces back to real cloth</td></tr>
+        <tr><td>Workspace / dashboard</td><td class="tterm">The Atelier</td><td><code>workspace</code></td><td>Every Pattern and Fitting in one studio</td></tr>
+        <tr><td>Export (PDF / DOCX)</td><td class="tterm">Ready to wear</td><td><code>export</code></td><td>The finished, pressed garment</td></tr>
+      </tbody>
+    </table>
+    <p class="callout">Tone rule: the metaphor is a flavor layer, not a costume. Labels and empty-states speak tailoring; tooltips and engineer-facing docs speak plainly. Never sacrifice clarity for the bit.</p>
+  </section>
+
+  <!-- SCOPE -->
+  <section id="scope">
+    <h2><span class="num">§</span>Scope &amp; Non-goals</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>In v1 <span class="verdict v-v1">Build</span></h3>
+        <ul class="clean">
+          <li>Multi-document corpus upload + parsing (PDF / DOCX / text / pasted)</li>
+          <li>Evidence-unit extraction &amp; dedup across overlapping docs</li>
+          <li>JD paste + requirement/keyword extraction</li>
+          <li>Match + inference engine (typed alterations)</li>
+          <li>Server-side verification gate (anti-fabrication)</li>
+          <li>Fitting Room results modal: template preview, "what changed", inline edit, provenance</li>
+          <li>Fit score (overall % + breakdown bars)</li>
+          <li>Export: ATS-safe PDF <em>or</em> DOCX (user's choice)</li>
+          <li>Accounts + Atelier dashboard (corpus stored once, per-job Fittings, revisit/duplicate)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Later / Out <span class="verdict v-later">Deferred</span></h3>
+        <ul class="clean">
+          <li>Cover-letter generation <span class="verdict v-later">Later</span></li>
+          <li>Job-board / ATS auto-apply integrations <span class="verdict v-later">Later</span></li>
+          <li>Plain-text copy-block export <span class="verdict v-later">Later</span></li>
+          <li>Multi-user / team accounts <span class="verdict v-out">Out</span></li>
+          <li>Editing corpus facts by re-writing inferences back into it <span class="verdict v-out">Out</span> (violates the two-layer rule)</li>
+          <li>Interview-prep / Q&amp;A from corpus <span class="verdict v-out">Out</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section id="architecture">
+    <h2><span class="num">1</span>Architecture</h2>
+    <p>The frontend is a thin, fast UI over a backend that owns everything sensitive: document parsing, the evidence store, all Claude calls, scoring, and export rendering. The frontend never holds the Claude key or parsing logic, so the Next.js app can be built later against a stable API contract (§9).</p>
+    <svg viewBox="0 0 880 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="System architecture diagram">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#9aa4b1"/>
+        </marker>
+      </defs>
+      <g font-family="-apple-system,sans-serif" font-size="13" fill="#e6edf3">
+        <!-- frontend -->
+        <rect x="20" y="110" width="170" height="80" rx="10" fill="#1f2630" stroke="#58a6ff"/>
+        <text x="105" y="142" text-anchor="middle" font-weight="600">Next.js / React</text>
+        <text x="105" y="162" text-anchor="middle" font-size="11" fill="#9aa4b1">UI · Fitting Room</text>
+        <!-- backend -->
+        <rect x="320" y="40" width="200" height="220" rx="10" fill="#161b22" stroke="#d9a441"/>
+        <text x="420" y="64" text-anchor="middle" font-weight="700" fill="#d9a441">Backend API</text>
+        <rect x="338" y="80" width="164" height="34" rx="7" fill="#1f2630" stroke="#2d3441"/>
+        <text x="420" y="102" text-anchor="middle" font-size="11.5">Document parser</text>
+        <rect x="338" y="122" width="164" height="34" rx="7" fill="#1f2630" stroke="#2d3441"/>
+        <text x="420" y="144" text-anchor="middle" font-size="11.5">Evidence store</text>
+        <rect x="338" y="164" width="164" height="34" rx="7" fill="#1f2630" stroke="#2d3441"/>
+        <text x="420" y="186" text-anchor="middle" font-size="11.5">Engine + Verifier</text>
+        <rect x="338" y="206" width="164" height="34" rx="7" fill="#1f2630" stroke="#2d3441"/>
+        <text x="420" y="228" text-anchor="middle" font-size="11.5">Export renderer</text>
+        <!-- claude -->
+        <rect x="640" y="40" width="160" height="70" rx="10" fill="#1f2630" stroke="#a371f7"/>
+        <text x="720" y="72" text-anchor="middle" font-weight="600">Claude API</text>
+        <text x="720" y="92" text-anchor="middle" font-size="11" fill="#9aa4b1">extract · infer · verify</text>
+        <!-- db -->
+        <rect x="640" y="135" width="160" height="55" rx="10" fill="#1f2630" stroke="#2d3441"/>
+        <text x="720" y="160" text-anchor="middle">Postgres</text>
+        <text x="720" y="178" text-anchor="middle" font-size="11" fill="#9aa4b1">users · corpus · jobs</text>
+        <!-- storage -->
+        <rect x="640" y="210" width="160" height="55" rx="10" fill="#1f2630" stroke="#2d3441"/>
+        <text x="720" y="235" text-anchor="middle">Object storage</text>
+        <text x="720" y="253" text-anchor="middle" font-size="11" fill="#9aa4b1">files · exports</text>
+        <!-- arrows -->
+        <line x1="192" y1="150" x2="316" y2="150" stroke="#9aa4b1" marker-end="url(#arr)" marker-start="url(#arr)"/>
+        <text x="254" y="142" text-anchor="middle" font-size="10" fill="#9aa4b1">HTTPS / JSON</text>
+        <line x1="522" y1="120" x2="636" y2="85" stroke="#9aa4b1" marker-end="url(#arr)" marker-start="url(#arr)"/>
+        <line x1="522" y1="160" x2="636" y2="160" stroke="#9aa4b1" marker-end="url(#arr)" marker-start="url(#arr)"/>
+        <line x1="522" y1="200" x2="636" y2="235" stroke="#9aa4b1" marker-end="url(#arr)" marker-start="url(#arr)"/>
+      </g>
+    </svg>
+    <p class="figcap">Frontend ⇄ Backend over JSON; backend is the only thing that touches Claude, the DB, and storage.</p>
+  </section>
+
+  <!-- DATA MODEL -->
+  <section id="datamodel">
+    <h2><span class="num">2</span>Data Model</h2>
+    <p>Two layers that <strong>never mix</strong> — this separation <em>is</em> the trust guarantee (see §4). The corpus is immutable ground truth; a tailoring is a disposable, derived view.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>The Cloth + The Form — immutable</h3>
+        <p class="meta">corpus_document · evidence_unit · canonical_profile</p>
+        <ul>
+          <li><strong>corpus_document</strong> — one uploaded file. Raw bytes + parsed text + source metadata.</li>
+          <li><strong>evidence_unit</strong> — the atom of trust ("Thread"). A discrete real claim — <em>"Built Tableau dashboards for the sales team, 2021–2022"</em> — deduped &amp; merged across overlapping docs. Links to source doc(s) + location.</li>
+          <li><strong>canonical_profile</strong> — "The Form" (§4). The corpus normalized into one profile: canonical threads, resolved entities/titles/dates, and grouped skill variants. <strong>Facts only</strong> — no stored relationships; the model infers those at match time. Built once, reused for every Fitting.</li>
+        </ul>
+        <p style="font-size:13px;color:var(--ink-dim)">Inferences are <strong>never</strong> written back here. Evidence units are facts about you; an inference is not a new fact.</p>
+      </div>
+      <div class="card">
+        <h3>The Fitting — derived</h3>
+        <p class="meta">job · tailoring · resume_bullet · transformation</p>
+        <ul>
+          <li><strong>job</strong> — a parsed JD: extracted requirements, skills, keywords, seniority.</li>
+          <li><strong>tailoring</strong> — one resume for one job: selected bullets, fit score, template, edits. Saved &amp; revisitable.</li>
+          <li><strong>resume_bullet</strong> — a line in the output. Carries its <code>transformation</code> type + the <code>evidence_unit</code> id(s) it derives from.</li>
+        </ul>
+      </div>
+    </div>
+    <pre><code><span class="c">// the load-bearing relationship</span>
+<span class="k">evidence_unit</span>  1 ──&lt; <span class="k">resume_bullet</span>  &gt;── 1 <span class="k">transformation_type</span>
+                          │
+                          └── <span class="k">provenance</span>: { evidence_ids[], relationship, type }
+
+<span class="c">// invariant enforced server-side, every bullet, no exception:</span>
+bullet.evidence_ids.length &gt; 0   <span class="c">// a bullet with no thread cannot exist</span></code></pre>
+  </section>
+
+  <!-- PIPELINE -->
+  <section id="pipeline">
+    <h2><span class="num">3</span>The Pipeline</h2>
+    <p>From raw uploads to a finished Fitting. Steps 1–2 happen once per corpus / once per job; steps 3–7 run each time a Fitting is generated.</p>
+    <svg viewBox="0 0 900 170" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Generation pipeline">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#d9a441"/>
+        </marker>
+      </defs>
+      <g font-family="-apple-system,sans-serif" font-size="11.5" fill="#e6edf3" text-anchor="middle">
+        <g>
+          <rect x="10"  y="60" width="110" height="50" rx="8" fill="#1f2630" stroke="#d9a441"/><text x="65" y="82">1 · Ingest</text><text x="65" y="98" font-size="9.5" fill="#9aa4b1">+ canonicalize</text>
+          <rect x="140" y="60" width="110" height="50" rx="8" fill="#1f2630" stroke="#2d3441"/><text x="195" y="82">2 · Read JD</text><text x="195" y="98" font-size="9.5" fill="#9aa4b1">→ pattern</text>
+          <rect x="270" y="60" width="110" height="50" rx="8" fill="#1f2630" stroke="#2d3441"/><text x="325" y="82">3 · Match</text><text x="325" y="98" font-size="9.5" fill="#9aa4b1">direct hits</text>
+          <rect x="400" y="60" width="110" height="50" rx="8" fill="#1f2630" stroke="#d9a441"/><text x="455" y="82">4 · Infer</text><text x="455" y="98" font-size="9.5" fill="#9aa4b1">alterations</text>
+          <rect x="530" y="60" width="110" height="50" rx="8" fill="#1f2630" stroke="#a371f7"/><text x="585" y="82">5 · Verify</text><text x="585" y="98" font-size="9.5" fill="#9aa4b1">gate</text>
+          <rect x="660" y="60" width="110" height="50" rx="8" fill="#1f2630" stroke="#2d3441"/><text x="715" y="82">6 · Compose</text><text x="715" y="98" font-size="9.5" fill="#9aa4b1">+ score fit</text>
+          <rect x="790" y="60" width="100" height="50" rx="8" fill="#1f2630" stroke="#3fb950"/><text x="840" y="82">7 · Present</text><text x="840" y="98" font-size="9.5" fill="#9aa4b1">fitting room</text>
+        </g>
+        <g stroke="#d9a441">
+          <line x1="122" y1="85" x2="138" y2="85" marker-end="url(#arr2)"/>
+          <line x1="252" y1="85" x2="268" y2="85" marker-end="url(#arr2)"/>
+          <line x1="382" y1="85" x2="398" y2="85" marker-end="url(#arr2)"/>
+          <line x1="512" y1="85" x2="528" y2="85" marker-end="url(#arr2)"/>
+          <line x1="642" y1="85" x2="658" y2="85" marker-end="url(#arr2)"/>
+          <line x1="772" y1="85" x2="788" y2="85" marker-end="url(#arr2)"/>
+        </g>
+      </g>
+    </svg>
+    <table>
+      <thead><tr><th>Step</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1 · Ingest + canonicalize</strong></td><td>Upload many docs → parse → split into <span class="tterm">threads</span>, then <strong>canonicalize</strong> (§4): dedup/merge restated facts, resolve entities, group skill variants → <span class="tterm">the Form</span>. Done once per corpus.</td></tr>
+        <tr><td><strong>2 · Read JD</strong></td><td>Paste/parse the <span class="tterm">Pattern</span> → Claude extracts required skills, responsibilities, keywords, seniority.</td></tr>
+        <tr><td><strong>3 · Match</strong></td><td>Find threads on the Form that already directly satisfy Pattern items.</td></tr>
+        <tr><td><strong>4 · Infer (yield)</strong></td><td>The model reasons over the whole Form against the Pattern to surface <span class="tterm">defensible matches the user never listed</span> (§5) for unmet items — the inference yield. Ungroundable reaches are never proposed.</td></tr>
+        <tr><td><strong>5 · Verify</strong></td><td>Server-side gate (§5): is each bullet entailed by its cited threads? Drop anything that asserts more than the cloth supports.</td></tr>
+        <tr><td><strong>6 · Compose</strong></td><td>Assemble a single-column, ATS-safe resume; phrase to mirror Pattern language while staying true to threads. Compute the Fit score.</td></tr>
+        <tr><td><strong>7 · Present</strong></td><td>Open the Fitting Room (§6): preview, what-changed, provenance, edit, export.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- CANONICAL PROFILE -->
+  <section id="profile">
+    <h2><span class="num">4</span>The Canonical Career Profile <span style="font-size:13px;color:var(--ink-dim)">— "The Form" · moat #1</span></h2>
+    <p class="lead">A real career corpus is messy: three overlapping resumes, the same achievement worded five ways, skills scattered across a portfolio and a LinkedIn export, inconsistent titles and date formats. Matching raw text against a JD wastes that richness. So before any job is ever seen, TAILOR <strong>canonicalizes</strong> the corpus into one normalized profile — <span class="tterm">the Form</span>.</p>
+    <div class="callout crux"><strong>Why this is a moat.</strong> Competitors re-parse a single resume per application. TAILOR accumulates a canonical, unified profile of everything you've ever done. It is built once and <strong>compounds</strong> — every doc you add makes every future application better. The Form is a durable user asset, not a throwaway parse.</div>
+    <h3>What canonicalization produces</h3>
+    <table>
+      <thead><tr><th>Step</th><th>What it does</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Dedup &amp; merge</strong></td><td>collapse restatements of the same fact into one canonical thread, keeping every source link</td><td>"Built Tableau dashboards" (resume A) + "Owned sales reporting in Tableau" (memo) → one thread, two sources</td></tr>
+        <tr><td><strong>Entity resolution</strong></td><td>unify employers, titles, and dates across docs into a consistent timeline</td><td>"Sr. Analyst" / "Senior Data Analyst" / "Data Analyst II" → one canonical role</td></tr>
+        <tr><td><strong>Skill grouping</strong></td><td>collapse obvious surface variants of the <em>same</em> skill (no curated ontology, no taxonomy to maintain)</td><td>"Tableau Desktop", "tableau", "TBL dashboards" → one skill</td></tr>
+      </tbody>
+    </table>
+    <div class="callout crux"><strong>Facts only — no relationship graph.</strong> The Form deliberately stores <em>what you've done</em>, not how skills relate to each other. We do <strong>not</strong> precompute a competency graph or seed an ontology — that would be brittle and would cap the reach to whatever edges we hand-encoded. Judging that "Tableau entails data visualization <em>in this context</em>" is left to the model at match time (§5), where it's done fresh against each Pattern.</div>
+    <p>The Form is what every Fitting is built on, and what the Atelier persists. It is part of the immutable ground-truth layer (§2): canonicalization <em>organizes</em> the cloth, it never <em>adds</em> to it.</p>
+  </section>
+
+  <!-- INFERENCE YIELD -->
+  <section id="yield">
+    <h2><span class="num">5</span>Inference Yield <span style="font-size:13px;color:var(--ink-dim)">— "The Reach" · moat #2</span></h2>
+    <p class="lead"><strong>Inference yield is the product.</strong> It is the set of matches TAILOR surfaces that the user <em>would never have put on their resume themselves</em> — defensible claims derived from the context of their own documents, lined up against what the employer is asking for. A user knows Tableau; the job asks for "data visualization"; the user never thought to phrase it that way. TAILOR closes that gap automatically.</p>
+    <h3>How yield is generated</h3>
+    <p>Yield comes from the <strong>model reasoning directly</strong> over the whole Form against the Pattern — proposing the defensible generalizations and synonyms that connect what you've actually done to what the JD asks. We deliberately do <em>not</em> precompute a competency graph or ontology (§4); the model is far better at judging entailment in context, and a fixed graph would only cap the reach. The honesty guarantee is therefore <strong>not</strong> a graph — it is grounding (§6) and the verification gate (§7). With no structure constraining the model, those two carry the full weight in this design, which is why they're the most important things to test (§14).</p>
+    <svg viewBox="0 0 860 220" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Model inference surfacing yield from the Form to the Pattern">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9aa4b1"/></marker>
+      </defs>
+      <g font-family="-apple-system,sans-serif" font-size="12" fill="#e6edf3">
+        <text x="95" y="24" text-anchor="middle" font-size="11" fill="#9aa4b1">YOUR THREADS (Form)</text>
+        <text x="430" y="24" text-anchor="middle" font-size="11" fill="#d9a441">MODEL INFERS (at match time)</text>
+        <text x="775" y="24" text-anchor="middle" font-size="11" fill="#58a6ff">PATTERN ASKS</text>
+        <!-- threads -->
+        <rect x="20" y="50" width="150" height="34" rx="7" fill="#1f2630" stroke="#2d3441"/><text x="95" y="72" text-anchor="middle">Tableau</text>
+        <rect x="20" y="100" width="150" height="34" rx="7" fill="#1f2630" stroke="#2d3441"/><text x="95" y="122" text-anchor="middle">Looker</text>
+        <rect x="20" y="150" width="150" height="34" rx="7" fill="#1f2630" stroke="#2d3441"/><text x="95" y="172" text-anchor="middle">SQL queries</text>
+        <!-- competencies -->
+        <rect x="330" y="62" width="200" height="34" rx="7" fill="#1f2630" stroke="#d9a441"/><text x="430" y="84" text-anchor="middle">data visualization</text>
+        <rect x="330" y="138" width="200" height="34" rx="7" fill="#1f2630" stroke="#d9a441"/><text x="430" y="160" text-anchor="middle">data analytics</text>
+        <!-- pattern asks -->
+        <rect x="680" y="62" width="170" height="34" rx="7" fill="#1f2630" stroke="#58a6ff"/><text x="765" y="84" text-anchor="middle">"data visualization"</text>
+        <rect x="680" y="138" width="170" height="34" rx="7" fill="#1f2630" stroke="#58a6ff"/><text x="765" y="160" text-anchor="middle">"analytics"</text>
+        <g stroke="#9aa4b1">
+          <line x1="172" y1="67" x2="328" y2="79" marker-end="url(#arr3)"/>
+          <line x1="172" y1="117" x2="328" y2="83" marker-end="url(#arr3)"/>
+          <line x1="172" y1="117" x2="328" y2="151" marker-end="url(#arr3)"/>
+          <line x1="172" y1="167" x2="328" y2="155" marker-end="url(#arr3)"/>
+          <line x1="532" y1="79" x2="678" y2="79" marker-end="url(#arr3)"/>
+          <line x1="532" y1="155" x2="678" y2="155" marker-end="url(#arr3)"/>
+        </g>
+      </g>
+    </svg>
+    <p class="figcap">The model's reasoning, not a stored structure: skills you listed → competencies they entail → requirements you never explicitly claimed. Yield = the connections it surfaces.</p>
+    <h3>Yield is measured and surfaced</h3>
+    <p>Because it's the core value, yield is a visible number, not a hidden mechanic. The Fitting Room (§8) reports it: <em>"14 matches surfaced — 9 you'd never listed."</em> Over time the Atelier can show yield per application, so the user sees TAILOR doing the work they'd otherwise do by hand.</p>
+    <div class="creed">Yield maximizes <strong>reach</strong>; grounding (§6) and verification (§7) keep it <strong>honest</strong>. These two forces are in deliberate tension — push reach as far as the cloth truthfully allows, and not one thread further.</div>
+  </section>
+
+  <!-- GROUNDING -->
+  <section id="grounding">
+    <h2><span class="num">6</span>Grounding &amp; Alterations <span style="font-size:13px;color:var(--ink-dim)">— keeping the reach honest</span></h2>
+    <p>"Every bullet must trace to evidence" sounds like it forbids inference. It doesn't — if inference is a <strong>typed, bounded transformation of cloth you already own</strong> rather than free invention. The resolution is two rules:</p>
+    <div class="callout crux"><strong>Two layers never mix.</strong> The corpus is immutable ground truth. A tailoring is a derived view — every bullet on it is a <em>transformation of</em> one or more evidence units, with the transformation type recorded. Inferences are never written back into the corpus.</div>
+    <h3>Every bullet is exactly one of four typed transformations</h3>
+    <table>
+      <thead><tr><th>Type</th><th>What it is</th><th>Grounding rule</th><th>Tableau example</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><strong>Verbatim</strong></td><td>restates an evidence unit</td><td>trivially grounded</td><td>"Built Tableau dashboards for sales"</td><td><span class="verdict v-allow">Allow</span></td></tr>
+        <tr><td><strong>Rephrase</strong></td><td>same fact, JD-aligned wording</td><td>asserts <strong>no fact</strong> not in the evidence</td><td>"Designed Tableau dashboards to drive sales decisions"</td><td><span class="verdict v-allow">Allow</span></td></tr>
+        <tr><td><strong>Infer</strong></td><td>a broader competency the evidence <em>entails</em></td><td>must be an entailment: IS-A / tool→competency / synonym — never mere association</td><td>Tableau → "data visualization"</td><td><span class="verdict v-flag">Allow + flag</span></td></tr>
+        <tr><td><strong>Compose</strong></td><td>one claim synthesized from several evidence units</td><td>must follow from the cited set <em>together</em></td><td>Tableau + Looker + SQL → "data analytics"</td><td><span class="verdict v-flag">Allow + flag</span></td></tr>
+      </tbody>
+    </table>
+    <h3>What is banned, always</h3>
+    <table>
+      <thead><tr><th>Banned alteration</th><th>Why</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Inventing metrics / numbers ("improved sales 30%")</td><td>not entailed by any thread</td><td><span class="verdict v-ban">Ban</span></td></tr>
+        <tr><td>Inventing projects, employers, titles, or dates</td><td>fabricates cloth</td><td><span class="verdict v-ban">Ban</span></td></tr>
+        <tr><td>Adding responsibilities the corpus doesn't support</td><td>association ≠ entailment</td><td><span class="verdict v-ban">Ban</span></td></tr>
+        <tr><td>Inferring an adjacent tool you never used (Tableau → "Power BI")</td><td>sibling, not a generalization</td><td><span class="verdict v-ban">Ban</span></td></tr>
+      </tbody>
+    </table>
+    <div class="creed">An alteration may <strong>widen or restate</strong> what the cloth says. It may never <strong>add</strong> to it. If you used Tableau, you <em>did</em> do data visualization — that claim is defensible in an interview, which is the test every inference must pass.</div>
+  </section>
+
+  <!-- VERIFICATION -->
+  <section id="verification">
+    <h2><span class="num">7</span>The Verification Gate</h2>
+    <p>Grounding is enforced by the system, not trusted to the model. Generation and verification are <strong>separate passes</strong> so the model that proposes a bullet is not the only thing judging it.</p>
+    <ol>
+      <li><strong>Propose.</strong> When Claude proposes a bullet it must emit a structured object: <code>type</code>, <code>evidence_ids[]</code>, and for inferences the <code>relationship</code> ("Tableau <em>is a</em> data-visualization tool").</li>
+      <li><strong>Verify.</strong> A separate server-side pass checks each bullet: <em>Is this claim entailed by the cited threads via the stated relationship? Does it assert anything the threads don't?</em> Pass → keep. Fail → drop (and log for transparency).</li>
+      <li><strong>Hard invariant.</strong> Independently of the model, the backend rejects any bullet with zero <code>evidence_ids</code>, or any number/metric not literally present in its cited threads. The model cannot bypass this.</li>
+    </ol>
+    <pre><code><span class="c">// structured proposal the model must return per bullet</span>
+{
+  <span class="p">"text"</span>: <span class="s">"Designed data-visualization dashboards to drive sales decisions"</span>,
+  <span class="p">"type"</span>: <span class="s">"infer"</span>,
+  <span class="p">"evidence_ids"</span>: [<span class="s">"ev_8f2"</span>],
+  <span class="p">"relationship"</span>: <span class="s">"tool_to_competency: Tableau ⊂ data visualization"</span>
+}
+<span class="c">// → verifier asks Claude: entailed? asserts nothing extra? → {ok:true}</span>
+<span class="c">// → hard check: any digits in text present in ev_8f2? → none added → pass</span></code></pre>
+    <p class="callout warn">This gate is the single most important test target (§14). If it leaks, the product's core promise breaks. Treat "an ungrounded bullet reached the user" as a sev-1 class of bug.</p>
+  </section>
+
+  <!-- MODAL -->
+  <section id="modal">
+    <h2><span class="num">8</span>The Fitting Room <span style="font-size:13px;color:var(--ink-dim)">— results modal</span></h2>
+    <p>After generation ("disbursement"), the user lands in the Fitting Room — a modal that lets them see, trust, adjust, and export without leaving the flow. Speed is the point: inferences are already applied; the user only intervenes if they want to.</p>
+    <div class="grid">
+      <div class="card"><h3>Template preview</h3><p>Live render of the resume in the chosen template. Switching templates re-renders instantly; never changes content, only presentation (and all templates stay ATS-safe).</p></div>
+      <div class="card"><h3>Fit score panel <span class="verdict v-info">§9</span></h3><p>Score bar + percentages: overall fit, keyword coverage, requirement coverage, format parseability. Updates as the user edits.</p></div>
+      <div class="card"><h3>What the AI changed <span class="verdict v-flag">yield</span></h3><p>Leads with the <strong>inference yield</strong> headline — <em>"14 matches surfaced, 9 you'd never listed"</em> — then lists added / rephrased / inferred bullets. Inferred and composed bullets are visually marked, and each shows <strong>"where the thread came from"</strong> — its source doc / evidence + relationship. Provenance is never hidden.</p></div>
+      <div class="card"><h3>Inline edit &amp; quick-remove</h3><p>Edit any bullet in place. Every inference has a one-click <strong>remove</strong> (it was auto-included, so dropping it is lightweight — never a blocking approval step). Edits re-score the Fit live.</p></div>
+    </div>
+    <h3>Export</h3>
+    <p>One action, user picks the format: <strong>ATS-safe PDF</strong> <em>or</em> <strong>DOCX</strong>. Both render server-side from the same composed resume so they're identical in content. The finished file is "ready to wear" and saved to the Fitting for re-download later.</p>
+  </section>
+
+  <!-- FIT -->
+  <section id="fit">
+    <h2><span class="num">9</span>The Fit Score <span style="font-size:13px;color:var(--ink-dim)">(ATS)</span></h2>
+    <p>A single headline percentage with a breakdown, shown as bars in the Fitting Room. Deterministic given a (resume, job) pair so it's testable and reproducible — Claude extracts the Pattern's requirements/keywords, but the scoring math is plain code.</p>
+    <div class="card">
+      <div class="fit"><span class="label">Overall fit</span><span class="track"><span class="bar" style="width:84%"></span></span><span class="pct">84%</span></div>
+      <div class="fit"><span class="label">Keyword coverage</span><span class="track"><span class="bar" style="width:78%"></span></span><span class="pct">78%</span></div>
+      <div class="fit"><span class="label">Requirement coverage</span><span class="track"><span class="bar" style="width:88%"></span></span><span class="pct">88%</span></div>
+      <div class="fit"><span class="label">Format parseability</span><span class="track"><span class="bar" style="width:96%"></span></span><span class="pct">96%</span></div>
+      <p class="meta" style="margin-top:10px">Illustrative values · overall = weighted blend of the three components</p>
+    </div>
+    <table>
+      <thead><tr><th>Component</th><th>Measures</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td>Keyword coverage</td><td>% of JD keywords present in the resume</td><td>extracted keyword set ∩ resume text</td></tr>
+        <tr><td>Requirement coverage</td><td>% of JD requirements with a matching bullet (direct or inferred)</td><td>each requirement mapped to ≥1 bullet</td></tr>
+        <tr><td>Format parseability</td><td>likelihood an ATS parses it cleanly</td><td>single-column, no tables/images/text-boxes, standard headings, parseable dates</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ATELIER -->
+  <section id="atelier">
+    <h2><span class="num">10</span>The Atelier <span style="font-size:13px;color:var(--ink-dim)">— workspace</span></h2>
+    <p>The reason TAILOR beats hand-tailoring for the repeat applicant: do the heavy lifting once, reuse forever.</p>
+    <ul class="clean">
+      <li><strong>Accounts.</strong> The Cloth is uploaded once and the Form (§4) is built once and stored, ready for any number of Patterns.</li>
+      <li><strong>Per-job Fittings.</strong> Each new JD creates a saved Fitting — revisit it, re-export, or duplicate it as a starting point.</li>
+      <li><strong>Re-run on a richer Form.</strong> Add a new achievement memo → the Form grows → re-generate any Fitting and yield typically rises.</li>
+      <li><strong>Dashboard.</strong> Every Pattern + its Fittings in one studio, with fit scores and inference yield at a glance.</li>
+    </ul>
+  </section>
+
+  <!-- API -->
+  <section id="api">
+    <h2><span class="num">11</span>API Contracts</h2>
+    <p>The stable boundary the React/Next.js frontend builds against. REST/JSON; auth via session token. Long-running steps (ingest, generate) return a job id the frontend polls or subscribes to.</p>
+    <table>
+      <thead><tr><th>Endpoint</th><th>Purpose</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST /corpus/documents</code></td><td>upload one or many files</td><td><code>document[]</code> + parse status</td></tr>
+        <tr><td><code>GET /corpus/threads</code></td><td>list extracted evidence units</td><td><code>evidence_unit[]</code></td></tr>
+        <tr><td><code>GET /corpus/profile</code></td><td>the canonical Form (facts only)</td><td><code>canonical_profile</code></td></tr>
+        <tr><td><code>POST /jobs</code></td><td>submit a JD (paste or file)</td><td><code>job</code> with extracted Pattern</td></tr>
+        <tr><td><code>POST /jobs/:id/fittings</code></td><td>generate a tailoring</td><td><code>tailoring</code>: bullets + provenance + fit_score</td></tr>
+        <tr><td><code>PATCH /fittings/:id</code></td><td>save inline edits / removals / template choice</td><td>updated <code>tailoring</code> + re-scored fit</td></tr>
+        <tr><td><code>POST /fittings/:id/export</code></td><td>render final file</td><td><code>{ format: "pdf"|"docx", url }</code></td></tr>
+        <tr><td><code>GET /workspace</code></td><td>Atelier dashboard data</td><td>jobs + fittings + scores</td></tr>
+      </tbody>
+    </table>
+    <pre><code><span class="c">// tailoring response shape (the contract the Fitting Room renders)</span>
+{
+  <span class="p">"id"</span>: <span class="s">"fit_2a9"</span>,
+  <span class="p">"fit_score"</span>: { <span class="p">"overall"</span>: 84, <span class="p">"keyword"</span>: 78, <span class="p">"requirement"</span>: 88, <span class="p">"format"</span>: 96 },
+  <span class="p">"inference_yield"</span>: { <span class="p">"surfaced"</span>: 14, <span class="p">"net_new"</span>: 9 },   <span class="c">// the moat metric</span>
+  <span class="p">"bullets"</span>: [
+    { <span class="p">"text"</span>: <span class="s">"..."</span>, <span class="p">"type"</span>: <span class="s">"infer"</span>,
+      <span class="p">"provenance"</span>: { <span class="p">"evidence_ids"</span>: [<span class="s">"ev_8f2"</span>], <span class="p">"source"</span>: <span class="s">"resume_2021.pdf"</span>,
+                       <span class="p">"relationship"</span>: <span class="s">"Tableau ⊂ data visualization"</span> } }
+  ],
+  <span class="p">"template"</span>: <span class="s">"classic-ats"</span>
+}</code></pre>
+  </section>
+
+  <!-- FRONTEND -->
+  <section id="frontend">
+    <h2><span class="num">12</span>React Frontend</h2>
+    <p>Components are small, single-purpose, and built around the API contract. Each is understandable and testable in isolation; presentation is decoupled from the engine entirely (the frontend renders data, it never decides grounding).</p>
+    <div class="grid grid-3">
+      <div class="card"><h3>ClothUploader</h3><p class="meta">→ POST /corpus/documents</p>Multi-file drag-drop, per-file parse status, manual-paste fallback.</div>
+      <div class="card"><h3>FormExplorer</h3><p class="meta">→ GET /corpus/profile</p>Browse the canonical Form — threads, resolved roles, grouped skills; reassurance the whole corpus was read &amp; unified.</div>
+      <div class="card"><h3>PatternInput</h3><p class="meta">→ POST /jobs</p>Paste/upload a JD; shows extracted requirements &amp; keywords.</div>
+      <div class="card"><h3>FittingRoom</h3><p class="meta">modal · §8</p>Orchestrates preview + score + yield + changes + edit + export.</div>
+      <div class="card"><h3>ResumePreview</h3><p class="meta">presentational</p>Renders a template from tailoring data; template switcher.</div>
+      <div class="card"><h3>ChangeList + ProvenanceTag</h3><p class="meta">presentational</p>"What changed", inferred markers, "where the thread came from".</div>
+      <div class="card"><h3>FitMeter</h3><p class="meta">presentational</p>Bars + percentages; re-renders on edit.</div>
+      <div class="card"><h3>ExportControl</h3><p class="meta">→ POST /export</p>PDF/DOCX choice; download.</div>
+      <div class="card"><h3>Atelier</h3><p class="meta">→ GET /workspace</p>Dashboard of Patterns &amp; Fittings.</div>
+    </div>
+    <p class="callout">State: server is the source of truth; the frontend caches tailoring data and optimistically reflects edits, then confirms via <code>PATCH</code>. No business logic (matching, inference, scoring) lives client-side.</p>
+  </section>
+
+  <!-- ERRORS -->
+  <section id="errors">
+    <h2><span class="num">13</span>Trust &amp; Failure Handling</h2>
+    <table>
+      <thead><tr><th>Situation</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Unparseable upload</td><td>flag the file, keep the rest, offer manual paste — never fail the whole corpus</td></tr>
+        <tr><td>Thin / vague JD</td><td>ask the user to paste more of the posting before generating</td></tr>
+        <tr><td>Claude error / timeout</td><td>retry with backoff; on failure show a clear message — <strong>never</strong> emit a partial or fabricated resume</td></tr>
+        <tr><td>Verifier rejects a bullet</td><td>silently drop it from the output; surface a count in "what changed" for transparency</td></tr>
+        <tr><td>No defensible match for a requirement</td><td>leave it unmet and reflect it honestly in requirement coverage — do not paper over the gap</td></tr>
+      </tbody>
+    </table>
+    <p>Privacy note: the corpus is sensitive personal career data. Store encrypted at rest, scope strictly to the owning account, and make corpus + Fittings fully deletable. (Detailed privacy/retention policy is its own follow-up doc.)</p>
+  </section>
+
+  <!-- TESTING -->
+  <section id="testing">
+    <h2><span class="num">14</span>Testing</h2>
+    <div class="grid">
+      <div class="card"><h3>Unit</h3><ul><li>parser (PDF/DOCX/text → clean text)</li><li>evidence-unit splitting + dedup</li><li>canonicalization: merge restatements, entity/title/date resolution, skill-variant grouping</li><li>Fit scorer — deterministic given inputs</li></ul></div>
+      <div class="card"><h3>Yield quality <span class="verdict v-info">moat</span></h3><ul><li>fixture corpora → known set of expected defensible matches; assert recall (yield finds them) and precision (no junk reaches)</li><li>net-new count is correct (surfaced minus user-listed)</li><li>adding a doc to the Form does not lower yield for the same Pattern</li></ul></div>
+      <div class="card"><h3>Grounding tests <span class="verdict v-flag">critical</span></h3><ul><li>every generated bullet maps to ≥1 real evidence unit</li><li>ungrounded inferences are rejected by the gate</li><li>no metric/number appears that isn't in cited threads</li><li>banned sibling-inference cases (Tableau→Power BI) are refused</li></ul></div>
+      <div class="card"><h3>Contract</h3><ul><li>frontend ⇄ backend response schemas</li><li>tailoring shape matches what FittingRoom renders</li></ul></div>
+      <div class="card"><h3>E2E</h3><ul><li>upload corpus → paste JD → generate → see score &amp; changes → export PDF/DOCX</li><li>edit a bullet → fit re-scores</li><li>revisit a saved Fitting from the Atelier</li></ul></div>
+    </div>
+  </section>
+
+  <!-- OPEN -->
+  <section id="open">
+    <h2><span class="num">15</span>Open Questions</h2>
+    <ul class="clean">
+      <li>How many resume <strong>templates</strong> ship in v1, and who designs them? (all must be ATS-safe)</li>
+      <li>Exact <strong>weighting</strong> of the overall Fit score across its three components — tune against real ATS behavior.</li>
+      <li>Generate vs. on-demand <strong>verification cost</strong>: a second Claude pass per bullet adds latency/cost — batch verify, or verify only inferences/composes?</li>
+      <li>Corpus <strong>refresh</strong> UX: when the user adds a doc, do we auto-flag existing Fittings as "re-runnable"?</li>
+      <li>Privacy/retention policy specifics — separate doc.</li>
+    </ul>
+    <hr>
+    <p class="meta-line">End of spec · ready for implementation planning · the next step is a writing-plans pass that turns §1–§14 into sequenced build tasks.</p>
+  </section>
+</main>
+</div>
+</body>
+</html>
