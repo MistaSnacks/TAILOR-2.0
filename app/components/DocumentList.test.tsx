@@ -6,7 +6,7 @@ import type { Doc } from "../../convex/_generated/dataModel";
 
 const docs: Doc<"corpusDocuments">[] = [
   // _id is a branded string; cast is fine in a fixture.
-  { _id: "doc1" as Doc<"corpusDocuments">["_id"], _creationTime: 0, filename: "resume.pdf", mimeType: "application/pdf" },
+  { _id: "doc1" as Doc<"corpusDocuments">["_id"], _creationTime: 0, filename: "resume.pdf", mimeType: "application/pdf", status: "uploaded" },
 ];
 
 test("renders each document filename", () => {

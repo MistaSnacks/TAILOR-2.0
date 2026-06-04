@@ -6,7 +6,7 @@ import { DocumentList } from "./components/DocumentList";
 
 export default function Page() {
   const documents = useQuery(api.documents.list) ?? [];
-  const create = useMutation(api.documents.create);
+  const create = useMutation(api.documents.recordDocument);
   const [filename, setFilename] = useState("");
 
   return (

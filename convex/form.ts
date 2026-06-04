@@ -17,6 +17,32 @@ export const evidenceIds = query({
   },
 });
 
+/** FormExplorer view: each thread with its source filenames, plus grouped skills. */
+export const formView = query({
+  args: {},
+  handler: async (ctx) => {
+    const units = await ctx.db.query("evidenceUnits").collect();
+    const threads = [];
+    for (const u of units) {
+      const edges = await ctx.db
+        .query("evidenceProvenance")
+        .withIndex("by_evidence", (q) => q.eq("evidenceId", u._id))
+        .collect();
+      const sources: string[] = [];
+      for (const e of edges) {
+        const doc = await ctx.db.get(e.documentId);
+        if (doc) sources.push(doc.filename);
+      }
+      threads.push({ id: u._id, text: u.text, sources });
+    }
+    const skills = (await ctx.db.query("canonicalSkills").collect()).map((s) => ({
+      name: s.name,
+      variants: s.variants,
+    }));
+    return { threads, skills };
+  },
+});
+
 /** Insert raw evidence for one document, each with a provenance edge. */
 export const addEvidence = internalMutation({
   args: {
