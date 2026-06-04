@@ -10,7 +10,7 @@
 
 **Tech Stack:** Convex 1.40+ (file storage, `"use node"` actions, internal functions, scheduler), `pdf-parse` + `mammoth` for parsing, `@anthropic-ai/sdk` (reference adapter — see note), Vitest + `convex-test` with injected fakes, Next.js App Router for FormExplorer.
 
-> **Model note (§18):** the spec routes parse/extract/canonicalize to **Gemini 3 Flash** for cost at scale. This plan implements the adapters against the **Anthropic SDK (Claude Haiku 4.5)** as a reference, because the `Extractor`/`Canonicalizer` interfaces are provider-agnostic — swapping to Gemini changes only the adapter file, not the interfaces, mutations, or tests. Pick the provider per §18 when wiring real keys.
+> **Model note (§18):** parse/extract/canonicalize default to **Gemini 3 Flash** (current keys). Provider, key, and model are all chosen by env vars on the Convex **deployment** via a factory (`convex/llm/index.ts`): `LLM_PROVIDER` (`gemini`|`anthropic`, default `gemini`), `GEMINI_API_KEY`/`ANTHROPIC_API_KEY`, and optional `LLM_MODEL`. Both providers implement the same `Extractor`/`Canonicalizer` interfaces, so **swapping a key or an entire provider is a config change, never a code change** — mutations, actions, and tests are untouched. Keys live on the deployment (`npx convex env set`), not in `.env`/`.env.local`, because these functions run server-side on Convex.
 
 > **Agnostic guard (§19):** none of the extraction/canonicalization prompts may be tuned to favor any single profile (including the author's). Validate against the diverse fixture roster, never one corpus.
 
@@ -34,7 +34,9 @@ tailor/
 │   ├── llm/
 │   │   ├── types.ts                   # NEW: Extractor / Canonicalizer interfaces + payload types
 │   │   ├── fake.ts                    # NEW: deterministic fakes for tests
-│   │   └── anthropic.ts               # NEW: reference adapters (swap per §18)
+│   │   ├── gemini.ts                  # NEW: Gemini adapter (default provider)
+│   │   ├── anthropic.ts               # NEW: Anthropic adapter (alternate)
+│   │   └── index.ts                   # NEW: provider factory — env-driven key/provider swap
 │   └── documents.test.ts              # MODIFY: cover recordDocument/setParsed/setFailed
 ├── app/
 │   ├── components/
@@ -425,10 +427,12 @@ Expected: "Convex functions ready" with no type errors.
 
 ---
 
-## Task 5: The LLM interfaces + fakes + reference adapter
+## Task 5: The LLM layer — interfaces, fakes, swappable provider adapters
 
 **Files:**
-- Create: `convex/llm/types.ts`, `convex/llm/fake.ts`, `convex/llm/anthropic.ts`
+- Create: `convex/llm/types.ts`, `convex/llm/fake.ts`, `convex/llm/gemini.ts`, `convex/llm/anthropic.ts`, `convex/llm/index.ts`
+
+> **Keys/providers swap via env, never code.** The factory in `index.ts` reads `LLM_PROVIDER` (default `gemini`), the matching API key, and optional `LLM_MODEL`, and returns the right adapter — both implement the same interfaces, so nothing downstream changes.
 
 - [ ] **Step 1: Define interfaces** — `convex/llm/types.ts`:
 
@@ -499,7 +503,7 @@ export class FakeCanonicalizer implements Canonicalizer {
 }
 ```
 
-- [ ] **Step 3: Reference adapter** — `convex/llm/anthropic.ts`:
+- [ ] **Step 3: Alternate adapter (Anthropic)** — `convex/llm/anthropic.ts`:
 
 ```ts
 // Reference adapter. §18 routes extract/canonicalize to Gemini 3 Flash at scale;
@@ -513,7 +517,7 @@ import type {
 } from "./types";
 
 const client = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = "claude-haiku-4-5-20251001"; // cheap, structured-output capable
+const MODEL = process.env.LLM_MODEL ?? "claude-haiku-4-5-20251001"; // cheap, structured-output capable
 
 function jsonFrom(text: string): unknown {
   const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
@@ -560,12 +564,70 @@ export class ClaudeCanonicalizer implements Canonicalizer {
 }
 ```
 
-- [ ] **Step 4: Install SDK, push, commit**
+- [ ] **Step 4: Default adapter (Gemini)** — `convex/llm/gemini.ts`:
+
+```ts
+import { GoogleGenAI } from "@google/genai";
+import type { Canonicalizer, CanonicalResult, Extractor, RawEvidence } from "./types";
+
+const MODEL = process.env.LLM_MODEL ?? "gemini-flash-latest"; // verify current id; §18 = Gemini 3 Flash
+const client = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+async function jsonCall(system: string, user: string): Promise<unknown> {
+  const res = await client().models.generateContent({
+    model: MODEL,
+    contents: user,
+    config: { systemInstruction: system, responseMimeType: "application/json", temperature: 0 },
+  });
+  return JSON.parse(res.text ?? "");
+}
+
+export class GeminiExtractor implements Extractor {
+  async extract(documentText: string): Promise<RawEvidence[]> {
+    const arr = (await jsonCall(
+      "Extract atomic, factual claims from this resume/career document. Each claim is one real thing the person did — no inference, no embellishment. Return a JSON array: [{\"text\": \"...\"}].",
+      documentText,
+    )) as RawEvidence[];
+    return (arr ?? []).filter((e) => e?.text?.trim());
+  }
+}
+
+export class GeminiCanonicalizer implements Canonicalizer {
+  async canonicalize(evidence: { text: string }[]): Promise<CanonicalResult> {
+    return (await jsonCall(
+      "Canonicalize a career corpus (§4). Given many evidence units (some restate the same fact across documents): (1) merge restatements into one thread, recording the 0-based input indices it merges; (2) resolve roles (employer/title/dates); (3) group skill surface-variants. ONLY organize — never add facts. Return JSON {\"threads\":[{\"text\",\"sourceIndices\":[],\"employer?\",\"title?\"}],\"roles\":[{\"employer\",\"title\",\"startDate?\",\"endDate?\"}],\"skills\":[{\"name\",\"variants\":[]}]}.",
+      JSON.stringify(evidence.map((e, i) => ({ i, text: e.text }))),
+    )) as CanonicalResult;
+  }
+}
+```
+
+- [ ] **Step 5: Provider factory** — `convex/llm/index.ts`:
+
+```ts
+// Provider selection. Swap key/provider/model via Convex deployment env vars,
+// not code: LLM_PROVIDER (gemini|anthropic), GEMINI_API_KEY/ANTHROPIC_API_KEY, LLM_MODEL.
+import type { Canonicalizer, Extractor } from "./types";
+import { GeminiCanonicalizer, GeminiExtractor } from "./gemini";
+import { ClaudeCanonicalizer, ClaudeExtractor } from "./anthropic";
+
+const provider = () => (process.env.LLM_PROVIDER ?? "gemini").toLowerCase();
+
+export function getExtractor(): Extractor {
+  return provider() === "anthropic" ? new ClaudeExtractor() : new GeminiExtractor();
+}
+export function getCanonicalizer(): Canonicalizer {
+  return provider() === "anthropic" ? new ClaudeCanonicalizer() : new GeminiCanonicalizer();
+}
+export * from "./types";
+```
+
+- [ ] **Step 6: Install SDKs, push, commit**
 
 ```bash
-npm install @anthropic-ai/sdk
+npm install @google/genai @anthropic-ai/sdk
 npx convex dev --once
-git add -A && git commit -m "feat(convex): Extractor/Canonicalizer interfaces + fakes + reference adapter"
+git add -A && git commit -m "feat(convex): swappable Extractor/Canonicalizer (Gemini default, Anthropic alternate) + factory"
 ```
 
 ---
@@ -775,7 +837,7 @@ git add -A && git commit -m "feat(convex): evidence insertion + provenance-prese
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { ClaudeExtractor } from "./llm/anthropic";
+import { getExtractor } from "./llm";
 
 /** Extract evidence units from a parsed document, then trigger a Form rebuild. */
 export const extractEvidence = internalAction({
@@ -783,7 +845,7 @@ export const extractEvidence = internalAction({
   handler: async (ctx, { documentId }) => {
     const doc = await ctx.runMutation(internal.documents.getDocument, { documentId });
     if (!doc?.parsedText) return;
-    const evidence = await new ClaudeExtractor().extract(doc.parsedText);
+    const evidence = await getExtractor().extract(doc.parsedText);
     await ctx.runMutation(internal.form.addEvidence, { documentId, evidence });
     await ctx.scheduler.runAfter(0, internal.canonicalize.rebuild, {});
   },
@@ -796,7 +858,7 @@ export const extractEvidence = internalAction({
 "use node";
 import { internalAction } from "./_generated/server";
 import { internal, api } from "./_generated/api";
-import { ClaudeCanonicalizer } from "./llm/anthropic";
+import { getCanonicalizer } from "./llm";
 
 /** Recompute the Form from all current evidence (§4). */
 export const rebuild = internalAction({
@@ -805,7 +867,7 @@ export const rebuild = internalAction({
     const units = await ctx.runQuery(api.form.listEvidence, {});
     if (units.length === 0) return;
     const evidenceOrder = units.map((u) => u._id);
-    const result = await new ClaudeCanonicalizer().canonicalize(units.map((u) => ({ text: u.text })));
+    const result = await getCanonicalizer().canonicalize(units.map((u) => ({ text: u.text })));
     await ctx.runMutation(internal.form.rebuildForm, { evidenceOrder, result });
   },
 });
@@ -825,10 +887,12 @@ with:
 - [ ] **Step 4: Set the API key + push**
 
 ```bash
-npx convex env set ANTHROPIC_API_KEY sk-ant-...   # set on the deployment, not .env.local
+npx convex env set LLM_PROVIDER gemini
+npx convex env set GEMINI_API_KEY <your-gemini-key>      # on the DEPLOYMENT, not .env.local
+# optional: npx convex env set LLM_MODEL gemini-3-flash   # verify the current model id
 npx convex dev --once
 ```
-Expected: "Convex functions ready". (Per §18, swap to a Gemini adapter + key here for production cost.)
+Expected: "Convex functions ready". To switch providers later with zero code change: `npx convex env set LLM_PROVIDER anthropic` and set `ANTHROPIC_API_KEY`.
 
 - [ ] **Step 5: Commit**
 
