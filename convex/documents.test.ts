@@ -1,34 +1,42 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 
-// convex-test needs to know your function modules; this glob loads them.
 const modules = import.meta.glob("./**/*.*s");
 
-test("create returns the stored document with id + _creationTime", async () => {
+test("recordDocument stores filename + mimeType with status 'uploaded'", async () => {
   const t = convexTest(schema, modules);
-  const doc = await t.mutation(api.documents.create, {
+  const id = await t.mutation(api.documents.recordDocument, {
     filename: "resume_2021.pdf",
     mimeType: "application/pdf",
   });
-  expect(doc?._id).toBeTruthy();
+  const doc = await t.run(async (ctx) => ctx.db.get(id));
   expect(doc?.filename).toBe("resume_2021.pdf");
-  expect(typeof doc?._creationTime).toBe("number");
+  expect(doc?.status).toBe("uploaded");
 });
 
-test("list returns documents newest first", async () => {
+test("setParsed records text and flips status to 'parsed'", async () => {
   const t = convexTest(schema, modules);
-  await t.mutation(api.documents.create, { filename: "first.pdf", mimeType: "application/pdf" });
-  await t.mutation(api.documents.create, { filename: "second.pdf", mimeType: "application/pdf" });
-  const docs = await t.query(api.documents.list, {});
-  expect(docs.map((d) => d.filename)).toEqual(["second.pdf", "first.pdf"]);
+  const id = await t.mutation(api.documents.recordDocument, {
+    filename: "a.txt",
+    mimeType: "text/plain",
+  });
+  await t.mutation(internal.documents.setParsed, { documentId: id, parsedText: "hello world" });
+  const doc = await t.run(async (ctx) => ctx.db.get(id));
+  expect(doc?.status).toBe("parsed");
+  expect(doc?.parsedText).toBe("hello world");
 });
 
-test("create rejects an empty filename", async () => {
+test("setFailed records an error and flips status to 'failed' (keeps the row, §13)", async () => {
   const t = convexTest(schema, modules);
-  await expect(
-    t.mutation(api.documents.create, { filename: "", mimeType: "application/pdf" }),
-  ).rejects.toThrow();
+  const id = await t.mutation(api.documents.recordDocument, {
+    filename: "broken.pdf",
+    mimeType: "application/pdf",
+  });
+  await t.mutation(internal.documents.setFailed, { documentId: id, error: "unparseable" });
+  const doc = await t.run(async (ctx) => ctx.db.get(id));
+  expect(doc?.status).toBe("failed");
+  expect(doc?.error).toBe("unparseable");
 });
