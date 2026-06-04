@@ -9,6 +9,11 @@
  */
 
 import type * as documents from "../documents.js";
+import type * as llm_anthropic from "../llm/anthropic.js";
+import type * as llm_fake from "../llm/fake.js";
+import type * as llm_gemini from "../llm/gemini.js";
+import type * as llm_index from "../llm/index.js";
+import type * as llm_types from "../llm/types.js";
 import type * as parse from "../parse.js";
 import type * as parsing_extractText from "../parsing/extractText.js";
 
@@ -20,6 +25,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   documents: typeof documents;
+  "llm/anthropic": typeof llm_anthropic;
+  "llm/fake": typeof llm_fake;
+  "llm/gemini": typeof llm_gemini;
+  "llm/index": typeof llm_index;
+  "llm/types": typeof llm_types;
   parse: typeof parse;
   "parsing/extractText": typeof parsing_extractText;
 }>;
