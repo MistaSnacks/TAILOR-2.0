@@ -133,6 +133,11 @@
   <a href="#errors">13 · Trust &amp; Failure</a>
   <a href="#testing">14 · Testing</a>
   <a href="#open">15 · Open Questions</a>
+  <h4>Generation Quality</h4>
+  <a href="#bestversion">16 · Best-Version Guarantee</a>
+  <a href="#selection">17 · Selection &amp; Ranking</a>
+  <a href="#routing">18 · Model Routing</a>
+  <a href="#fixtures">19 · Seed Fixtures</a>
 </nav>
 
 <main>
@@ -572,9 +577,88 @@ bullet.evidence_ids.length &gt; 0   <span class="c">// a bullet with no thread c
       <li>Corpus <strong>refresh</strong> UX: when the user adds a doc, do we auto-flag existing Fittings as "re-runnable"?</li>
       <li>Privacy/retention policy specifics — separate doc.</li>
     </ul>
-    <hr>
-    <p class="meta-line">End of spec · ready for implementation planning · the next step is a writing-plans pass that turns §1–§14 into sequenced build tasks.</p>
   </section>
+
+  <!-- BEST-VERSION GUARANTEE -->
+  <section id="bestversion">
+    <h2><span class="num">16</span>The Best-Version Guarantee <span style="font-size:13px;color:var(--ink-dim)">— what "done" means</span></h2>
+    <p class="lead">When a Fitting finishes, it must be the <strong>best defensible version</strong> of the user's resume for that Pattern given their Cloth — good enough to submit with confidence. Operationally: it is <strong>impossible</strong> for the Fitting Room to suggest an improvement the corpus could have supported. Any "to improve, add X" item must be a <em>genuine gap in the user's experience</em>, never a thread TAILOR failed to surface.</p>
+    <div class="callout crux"><strong>The guarantee is structural, not iterative.</strong> The improvement list shown to the user is computed as a <strong>set difference</strong>:<br>
+    <code>improvements = {Pattern requirements} − {requirements the Cloth can defensibly cover}</code><br>
+    If coverage is computed exhaustively against the Form <em>before</em> composing (§4–§5), the only items that can remain are requirements no thread supports — real gaps ("the role needs an AWS certification you don't have", "asks for 5 yrs, your timeline shows 3"). A corpus-supportable keyword can never appear there, because anything supportable was already pulled in or only displaced by the length budget (§17).</div>
+    <h3>The bounded coverage loop</h3>
+    <p>The guarantee is enforced by a tight loop over a <strong>deterministic, computable objective</strong> — requirement/keyword coverage — not over subjective writing quality:</p>
+    <ol>
+      <li><strong>Plan.</strong> Map every Pattern requirement → the evidence units that entail it (direct hit or defensible alteration, §6). This is the coverage map, built before any prose.</li>
+      <li><strong>Generate.</strong> Compose from the selected threads (§17), instructed to express every covered requirement.</li>
+      <li><strong>Coverage-diff</strong> <span class="verdict v-info">deterministic</span>. Recompute coverage on the <em>produced</em> draft. Any requirement that is corpus-supportable but absent from the draft is a defect — exactly the failure mode this section forbids.</li>
+      <li><strong>Targeted revise.</strong> Feed only the specific missing-but-supportable requirements back as a narrow instruction ("add evidence for X; change nothing else").</li>
+      <li><strong>Stop at the fixed point.</strong> Halt when the coverage-diff is empty, or the last revision closed zero new gaps. Typically 2–3 rounds.</li>
+    </ol>
+    <p class="callout warn"><strong>Not open-ended self-refinement.</strong> "Make it better" loops are documented to <em>degrade</em> output — models lock onto a draft and pad it, and self-critique only helps when the model's error rate is already near-zero. The loop here only ever closes <em>measurable</em> coverage gaps; it never rewrites for taste. The coverage-diff is the objective; the verification gate (§7) is the wall that stops the loop from inventing evidence to "close" a gap.</p>
+    <div class="creed">A Fitting is done when every defensible thread that matches the Pattern is on the page, and every remaining gap is one the cloth genuinely cannot cover. Nothing left to honestly add.</div>
+  </section>
+
+  <!-- SELECTION -->
+  <section id="selection">
+    <h2><span class="num">17</span>Selection &amp; Ranking <span style="font-size:13px;color:var(--ink-dim)">— fitting to the length budget</span></h2>
+    <p>A deep corpus (e.g. a 9-yr backend engineer, 5 roles) yields <strong>40–60 defensible candidate bullets</strong> for a single Pattern, but a resume holds ~18–24. Choosing which threads make the page — and in what order — is its own step, distinct from grounding (§6, which decides whether a bullet is <em>allowed</em>) and from the Fit score (§9, which grades the <em>finished</em> resume).</p>
+    <div class="callout crux"><strong>Selection = monotone submodular maximization under a knapsack (length) constraint.</strong> This is the same structure as extractive summarization and RAG context selection, with a provable (1−1/e) greedy guarantee. The objective is <strong>weighted coverage of Pattern concepts</strong>; submodularity encodes diminishing returns, so the second bullet proving "Kubernetes" counts for less than the first — redundancy is handled by the objective, not by ad-hoc penalties.</div>
+    <h3>The selection model</h3>
+    <ul class="clean">
+      <li><strong>Objective:</strong> maximize covered Pattern concepts, weighted by (a) Pattern priority — required qualifications ≫ nice-to-haves — and (b) <strong>role recency</strong>, so coverage delivered through a recent role is worth more (ATS weights recency, §9).</li>
+      <li><strong>Algorithm:</strong> density-greedy — pick the bullet with the highest marginal coverage-gain per line consumed, repeat until the budget is full. No model in this loop; it is plain, deterministic code, <strong>testable like the Fit scorer</strong>.</li>
+      <li><strong>Seniority emphasis:</strong> line-cost scales with role age — the current role gets the largest budget; roles 4–5 cap at 1–2 bullets. Falls out of the knapsack cost-weighting and matches recruiter norms.</li>
+      <li><strong>Ordering</strong> is convention, not optimization: roles newest-first, bullets within a role by coverage contribution.</li>
+    </ul>
+    <h3>Length budget</h3>
+    <p><strong>Decision (v1):</strong> up to <strong>two pages, substance-driven</strong> for senior/deep profiles — budget ~18–24 bullets — collapsing to one page when the corpus can't fill a second page without padding. (Senior two-pagers measurably out-pull one-pagers when page two is real content; the limiting factor is the human reader, not the parser.) The Fit score's format component (§9) keeps it ATS-safe regardless.</p>
+    <p style="font-size:13px;color:var(--ink-dim)">Relationship to §16: selection is where the length budget bites. If a corpus-supportable requirement is left uncovered, the coverage-diff (§16) checks whether swapping a low-value bullet would cover it; only requirements that lose that trade-off — or have no thread at all — are honestly reported as gaps.</p>
+  </section>
+
+  <!-- MODEL ROUTING -->
+  <section id="routing">
+    <h2><span class="num">18</span>Model Routing <span style="font-size:13px;color:var(--ink-dim)">— which model does what</span></h2>
+    <p>Different pipeline stages have different cost/quality profiles. The routing below is the v1 default (verified mid-2026); model names will drift, so treat the <em>roles</em> as stable and the named models as swappable.</p>
+    <table>
+      <thead><tr><th>Stage</th><th>Primary</th><th>Cheaper fallback</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Parse + canonicalize (§4)</td><td>Gemini 3 Flash (1M ctx)</td><td>Flash-Lite / Haiku 4.5</td><td>high-volume structured JSON, doc-native, cheap</td></tr>
+        <tr><td>Match + infer (§5)</td><td colspan="2">Claude Opus 4.8 / Sonnet 4.6 — <strong>in-context over the whole Form, no embeddings</strong></td><td>~90 threads fit in context; more accurate than retrieval at this scale (vectors deferred — see Open Q)</td></tr>
+        <tr><td>Generate / compose (§16)</td><td>Claude Opus 4.8</td><td>Sonnet 4.6 (~40% cost)</td><td>reasoning + steerable honesty; customer-facing output</td></tr>
+        <tr><td>Verification gate (§7)</td><td><strong>GPT-5.5 — different vendor</strong></td><td>Gemini 3.1 Pro</td><td>independence: a same-family judge shares blind spots and rationalizes the same fabrications</td></tr>
+      </tbody>
+    </table>
+    <div class="callout crux"><strong>The one non-negotiable split: the verifier is a separate pass, ideally a different vendor than the generator.</strong> A model grading its own output in one pass is theater — it is the brittle self-correction §16 warns against. Cross-vendor decorrelates failure modes; the ops cost is a second API key. If consolidating, the minimum is a separate stateless pass that sees only <code>(claim, cited evidence)</code> — never the generator's reasoning.</div>
+    <p class="callout"><strong>Don't over-engineer.</strong> In an MVP one strong model can handle parse + generate together; the verifier is the only mandatory separation. Specialize the cheap high-volume extractor and the frontier generator only once unit economics or quality demand it.</p>
+    <p style="font-size:13px;color:var(--ink-dim)">Privacy: the corpus is dense career PII. Use zero-retention API tiers; for the highest-sensitivity deployments, self-host the extractor/embedder so profile text never leaves the boundary. (Ties to §13.)</p>
+  </section>
+
+  <!-- SEED FIXTURES -->
+  <section id="fixtures">
+    <h2><span class="num">19</span>Seed Test Fixtures <span style="font-size:13px;color:var(--ink-dim)">— how we test the guarantee</span></h2>
+    <p>The moat (§4–§5) and the guarantee (§16) are only as trustworthy as what we test them against. Fixtures are <strong>LLM-synthetic, with authored ground-truth labels</strong> — seeded for realism from permissively-licensed real datasets (CC0/MIT) but never carrying real PII into our systems. This gives privacy safety <em>and</em>, critically, match labels we control.</p>
+    <h3>Recipe</h3>
+    <table>
+      <thead><tr><th>Step</th><th>What it produces</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1 · Truth file per persona</strong></td><td>One canonical YAML/JSON: 5 dated roles, each with 3–5 atomic achievements carrying hard attributes (metric, tech, scope). This is the label source of truth.</td></tr>
+        <tr><td><strong>2 · Fan out 8–12 docs</strong></td><td>LLM-generate overlapping variants from that one truth file — terse 1-pager, 3-pager, LinkedIn prose, an older resume missing the last job, a brag-doc, a cover letter. Prompt constraint: <strong>reword, never invent</strong> — every claim traces to a truth-file attribute.</td></tr>
+        <tr><td><strong>3 · Paired Patterns</strong></td><td>Per persona, JDs at three tiers: Good (target role), Potential (adjacent), No-Fit (cross-domain).</td></tr>
+        <tr><td><strong>4 · Defensible-match labels</strong></td><td>Criterion-level rows: which truth-file attribute satisfies each Pattern must-have, with a span pointer.</td></tr>
+      </tbody>
+    </table>
+    <h3>The two oracles these give us</h3>
+    <ul class="clean">
+      <li><strong>Canonicalization oracle:</strong> dedup (§4) must collapse all phrasings of attribute X across the 8–12 docs into one thread with all source links.</li>
+      <li><strong>Best-version oracle:</strong> for each (persona, Pattern), the finished Fitting must surface the strongest phrasing of <em>every</em> attribute that matches a must-have — directly asserting §16.</li>
+    </ul>
+    <p>Persona roster spans a 9-yr backend SWE (flagship), a mid full-stack dev, a data→backend switcher, a sparse career-changer (tests inference), and a non-SWE control (cross-domain No-Fit). Inject hard cases — employment gaps, over-qualification, prompt-injection in a skills list — so guardrails are exercised, not just the happy path.</p>
+    <div class="callout warn"><strong>Stay agnostic.</strong> The product must never be tuned to make any one profile — including the author's own resume — score better. That is invisible bias that degrades every other user and invalidates these fixtures. The author's resume is just one more test profile, never the target. Validate every change against the diverse roster, not one corpus.</div>
+  </section>
+
+  <hr>
+  <p class="meta-line">End of spec · §16–§19 added 2026-06-03 (research-backed) · backend = Convex · Plan 1 built (docs/plans/2026-06-03-tailor-convex-foundation.md) → Plan 2 ingestion → Plan 3 implements §16–§18.</p>
 </main>
 </div>
 </body>
