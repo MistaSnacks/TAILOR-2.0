@@ -9,6 +9,7 @@
  */
 
 import type * as documents from "../documents.js";
+import type * as form from "../form.js";
 import type * as llm_anthropic from "../llm/anthropic.js";
 import type * as llm_fake from "../llm/fake.js";
 import type * as llm_gemini from "../llm/gemini.js";
@@ -25,6 +26,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   documents: typeof documents;
+  form: typeof form;
   "llm/anthropic": typeof llm_anthropic;
   "llm/fake": typeof llm_fake;
   "llm/gemini": typeof llm_gemini;
