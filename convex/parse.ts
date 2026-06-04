@@ -35,7 +35,7 @@ export const parseDocument = internalAction({
       });
       if (text.length === 0) throw new Error("empty after parse");
       await ctx.runMutation(internal.documents.setParsed, { documentId, parsedText: text });
-      // P2-T7 adds: schedule extract here.
+      await ctx.scheduler.runAfter(0, internal.extract.extractEvidence, { documentId });
     } catch (e) {
       await ctx.runMutation(internal.documents.setFailed, {
         documentId,
