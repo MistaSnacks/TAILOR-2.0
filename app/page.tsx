@@ -8,12 +8,14 @@ export default function Atelier() {
   const { session } = useSession();
   const documents = useQuery(api.documents.list);
   const view = useQuery(api.form.formView);
+  const jobs = useQuery(api.fittings.listJobs);
+  const fittings = useQuery(api.fittings.listFittings);
 
   const stats = [
     { num: documents?.length ?? 0, label: "Bolts of cloth", tech: "corpus_documents", href: "/cloth" },
     { num: view?.threads.length ?? 0, label: "Threads", tech: "evidence_units", href: "/form" },
-    { num: 0, label: "Patterns", tech: "jobs", href: "/patterns" },
-    { num: 0, label: "Fittings", tech: "tailorings", href: "/fittings" },
+    { num: jobs?.length ?? 0, label: "Patterns", tech: "jobs", href: "/patterns" },
+    { num: fittings?.length ?? 0, label: "Fittings", tech: "tailorings", href: "/fittings" },
   ];
 
   return (

@@ -11,7 +11,9 @@
 import type * as canonicalize from "../canonicalize.js";
 import type * as documents from "../documents.js";
 import type * as extract from "../extract.js";
+import type * as fittings from "../fittings.js";
 import type * as form from "../form.js";
+import type * as generate from "../generate.js";
 import type * as llm_anthropic from "../llm/anthropic.js";
 import type * as llm_fake from "../llm/fake.js";
 import type * as llm_gemini from "../llm/gemini.js";
@@ -30,7 +32,9 @@ declare const fullApi: ApiFromModules<{
   canonicalize: typeof canonicalize;
   documents: typeof documents;
   extract: typeof extract;
+  fittings: typeof fittings;
   form: typeof form;
+  generate: typeof generate;
   "llm/anthropic": typeof llm_anthropic;
   "llm/fake": typeof llm_fake;
   "llm/gemini": typeof llm_gemini;

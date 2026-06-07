@@ -47,4 +47,32 @@ export default defineSchema({
   })
     .index("by_evidence", ["evidenceId"])
     .index("by_document", ["documentId"]),
+
+  // The Pattern: a parsed job description.
+  jobs: defineTable({
+    title: v.string(),
+    rawText: v.string(),
+  }),
+
+  // A Fitting: one tailored résumé for one Pattern. Bullets are grounded (§6/§7).
+  fittings: defineTable({
+    jobId: v.id("jobs"),
+    summary: v.string(),
+    bullets: v.array(
+      v.object({
+        text: v.string(),
+        type: v.string(), // verbatim | rephrase | infer | compose
+        evidenceIds: v.array(v.string()),
+        relationship: v.optional(v.string()),
+      }),
+    ),
+    keywords: v.array(v.string()),
+    requirements: v.array(v.object({ text: v.string(), covered: v.boolean() })),
+    fit: v.object({
+      overall: v.number(),
+      keyword: v.number(),
+      requirement: v.number(),
+      format: v.number(),
+    }),
+  }).index("by_job", ["jobId"]),
 });

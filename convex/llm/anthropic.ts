@@ -2,7 +2,16 @@
 // Alternate adapter. The interfaces are provider-agnostic, so swapping providers
 // is this file + the factory's env switch only.
 import Anthropic from "@anthropic-ai/sdk";
-import type { Canonicalizer, CanonicalResult, Extractor, RawEvidence } from "./types";
+import {
+  GENERATION_SYSTEM,
+  type Canonicalizer,
+  type CanonicalResult,
+  type Extractor,
+  type GenThread,
+  type GeneratedResume,
+  type Generator,
+  type RawEvidence,
+} from "./types";
 
 const client = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = process.env.LLM_MODEL ?? "claude-haiku-4-5-20251001"; // cheap, structured-output capable
@@ -48,5 +57,18 @@ export class ClaudeCanonicalizer implements Canonicalizer {
     });
     const block = res.content.find((b) => b.type === "text");
     return jsonFrom(block && "text" in block ? block.text : "{}") as CanonicalResult;
+  }
+}
+
+export class ClaudeGenerator implements Generator {
+  async generate(jobText: string, threads: GenThread[], skills: string[]): Promise<GeneratedResume> {
+    const res = await client().messages.create({
+      model: MODEL,
+      max_tokens: 8192,
+      system: GENERATION_SYSTEM,
+      messages: [{ role: "user", content: JSON.stringify({ jobDescription: jobText, threads, skills }) }],
+    });
+    const block = res.content.find((b) => b.type === "text");
+    return jsonFrom(block && "text" in block ? block.text : "{}") as GeneratedResume;
   }
 }

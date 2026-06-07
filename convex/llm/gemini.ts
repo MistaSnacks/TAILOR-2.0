@@ -1,6 +1,15 @@
 "use node";
 import { GoogleGenAI } from "@google/genai";
-import type { Canonicalizer, CanonicalResult, Extractor, RawEvidence } from "./types";
+import {
+  GENERATION_SYSTEM,
+  type Canonicalizer,
+  type CanonicalResult,
+  type Extractor,
+  type GenThread,
+  type GeneratedResume,
+  type Generator,
+  type RawEvidence,
+} from "./types";
 
 const MODEL = process.env.LLM_MODEL ?? "gemini-flash-latest"; // §18 = Gemini 3 Flash; override via LLM_MODEL
 const client = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -30,5 +39,12 @@ export class GeminiCanonicalizer implements Canonicalizer {
       "Canonicalize a career corpus (§4). Given many evidence units (some restate the same fact across documents): (1) merge restatements into one thread, recording the 0-based input indices it merges; (2) resolve roles (employer/title/dates); (3) group skill surface-variants. ONLY organize — never add facts. Return JSON {\"threads\":[{\"text\",\"sourceIndices\":[],\"employer?\",\"title?\"}],\"roles\":[{\"employer\",\"title\",\"startDate?\",\"endDate?\"}],\"skills\":[{\"name\",\"variants\":[]}]}.",
       JSON.stringify(evidence.map((e, i) => ({ i, text: e.text }))),
     )) as CanonicalResult;
+  }
+}
+
+export class GeminiGenerator implements Generator {
+  async generate(jobText: string, threads: GenThread[], skills: string[]): Promise<GeneratedResume> {
+    const user = JSON.stringify({ jobDescription: jobText, threads, skills });
+    return (await jsonCall(GENERATION_SYSTEM, user)) as GeneratedResume;
   }
 }
