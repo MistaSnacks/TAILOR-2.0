@@ -1,19 +1,24 @@
 "use client";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { FormExplorer } from "../components/FormExplorer";
+import { ProfileView } from "../components/ProfileView";
 
 export default function FormPage() {
-  const view = useQuery(api.form.formView);
+  const p = useQuery(api.profile.getProfile);
   return (
     <>
       <div className="eyebrow">profile</div>
       <h1>The <em>Form</em></h1>
       <p className="lede">
-        Your whole corpus, deduped and unified into one canonical profile — the dress form every
-        Fitting is built on. Each thread traces back to the cloth it came from.
+        Your whole corpus, deduped and unified into one structured profile — contact, experiences
+        (every bullet grouped under its role), skills, and education. Every Fitting is cut from this.
       </p>
-      <FormExplorer threads={view?.threads ?? []} skills={view?.skills ?? []} />
+      <ProfileView
+        basics={p?.basics ?? null}
+        experiences={p?.experiences ?? []}
+        skills={p?.skills ?? []}
+        education={p?.education ?? []}
+      />
     </>
   );
 }

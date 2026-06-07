@@ -1,48 +1,76 @@
 "use node";
-import { internalAction } from "./_generated/server";
-import { internal, api } from "./_generated/api";
-import { getCanonicalizer } from "./llm";
+import { action, internalAction } from "./_generated/server";
+import { api, internal } from "./_generated/api";
+import { getProfileBuilder } from "./llm";
 
-/** Recompute the Form from all current evidence (§4). */
-export const rebuild = internalAction({
+const s = (x: unknown): string | undefined =>
+  typeof x === "string" && x.trim().length > 0 ? x : undefined;
+
+/** Canonicalize ALL parsed documents into one structured, deduped profile (§4). */
+export const buildProfile = internalAction({
   args: {},
   handler: async (ctx) => {
-    const units = await ctx.runQuery(api.form.listEvidence, {});
-    if (units.length === 0) {
-      // Nothing left — clear roles/skills/threads so the Form reflects an empty corpus.
-      await ctx.runMutation(internal.form.rebuildForm, {
-        evidenceOrder: [],
-        result: { threads: [], roles: [], skills: [] },
-      });
+    const docs = await ctx.runQuery(api.documents.list);
+    const parsed = docs
+      .filter((d) => d.status === "parsed" && d.parsedText)
+      .map((d) => ({ filename: d.filename, text: d.parsedText as string }));
+    if (parsed.length === 0) {
+      await ctx.runMutation(internal.profile.clearProfile, {});
       return;
     }
-    const evidenceOrder = units.map((u) => u._id);
-    const raw = await getCanonicalizer().canonicalize(units.map((u) => ({ text: u.text })));
-    // Models return `null` for absent optional fields; Convex optional validators
-    // accept `undefined`, not `null` — so strip nulls before persisting.
-    // Models return null / drop fields unpredictably. Be fully defensive: drop
-    // malformed entries and strip nulls so Convex's validators never reject the batch.
-    const result = {
-      threads: (raw.threads ?? [])
-        .filter((t) => t && typeof t.text === "string" && t.text.trim().length > 0)
-        .map((t) => ({
-          text: t.text,
-          sourceIndices: Array.isArray(t.sourceIndices) ? t.sourceIndices.filter((n) => typeof n === "number") : [],
-          ...(t.employer ? { employer: t.employer } : {}),
-          ...(t.title ? { title: t.title } : {}),
-        })),
-      roles: (raw.roles ?? [])
-        .filter((r) => r && r.employer && r.title)
-        .map((r) => ({
-          employer: r.employer,
-          title: r.title,
-          ...(r.startDate ? { startDate: r.startDate } : {}),
-          ...(r.endDate ? { endDate: r.endDate } : {}),
+    const raw = await getProfileBuilder().build(parsed);
+    const b = raw.basics ?? { profiles: [] };
+
+    // Sanitize: strip nulls, drop malformed entries (models return null/garbage).
+    const profile = {
+      basics: {
+        ...(s(b.name) ? { name: b.name } : {}),
+        ...(s(b.label) ? { label: b.label } : {}),
+        ...(s(b.email) ? { email: b.email } : {}),
+        ...(s(b.phone) ? { phone: b.phone } : {}),
+        ...(s(b.url) ? { url: b.url } : {}),
+        ...(s(b.summary) ? { summary: b.summary } : {}),
+        ...(s(b.location) ? { location: b.location } : {}),
+        profiles: (b.profiles ?? [])
+          .filter((p) => p && p.network && p.url)
+          .map((p) => ({ network: p.network, url: p.url })),
+      },
+      experiences: (raw.experiences ?? [])
+        .filter((e) => e && e.company && e.position)
+        .map((e) => ({
+          company: e.company,
+          position: e.position,
+          ...(s(e.location) ? { location: e.location } : {}),
+          ...(s(e.startDate) ? { startDate: e.startDate } : {}),
+          ...(s(e.endDate) ? { endDate: e.endDate } : {}),
+          isCurrent: !!e.isCurrent,
+          highlights: (e.highlights ?? []).filter((h) => typeof h === "string" && h.trim().length > 0),
         })),
       skills: (raw.skills ?? [])
-        .filter((s) => s && s.name)
-        .map((s) => ({ name: s.name, variants: Array.isArray(s.variants) ? s.variants.filter((x) => typeof x === "string") : [] })),
+        .filter((sk) => sk && sk.name)
+        .map((sk) => ({
+          name: sk.name,
+          keywords: (sk.keywords ?? []).filter((k) => typeof k === "string" && k.trim().length > 0),
+        })),
+      education: (raw.education ?? [])
+        .filter((ed) => ed && ed.institution)
+        .map((ed) => ({
+          institution: ed.institution,
+          ...(s(ed.area) ? { area: ed.area } : {}),
+          ...(s(ed.studyType) ? { studyType: ed.studyType } : {}),
+          ...(s(ed.startDate) ? { startDate: ed.startDate } : {}),
+          ...(s(ed.endDate) ? { endDate: ed.endDate } : {}),
+        })),
     };
-    await ctx.runMutation(internal.form.rebuildForm, { evidenceOrder, result });
+    await ctx.runMutation(internal.profile.setProfile, { profile });
+  },
+});
+
+/** Manually rebuild the Form from current cloth (UI "Rebuild Form" button). */
+export const reprocessAll = action({
+  args: {},
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(0, internal.canonicalize.buildProfile, {});
+    return { ok: true };
   },
 });

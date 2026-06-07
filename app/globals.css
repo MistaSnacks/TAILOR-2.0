@@ -209,6 +209,54 @@ textarea.pattern:focus { outline: none; border-color: var(--thread); }
 .btype { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-2); color: var(--ink-dim); }
 .btype.infer, .btype.compose { color: var(--thread-2); border-color: var(--thread-deep); background: rgba(217,164,65,0.07); }
 
+/* ---------- Form: contact / experience / skills ---------- */
+.contact { margin: 22px 0 8px; }
+.cname { font-family: var(--serif); font-size: 30px; }
+.clabel { color: var(--thread-2); font-size: 15px; margin-top: 2px; }
+.cmeta { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); margin-top: 8px; }
+.cmeta a { color: var(--thread-2); }
+.csummary { color: var(--ink-dim); margin-top: 12px; max-width: 64ch; }
+
+.xp { padding: 14px 0; border-bottom: 1px dashed var(--line); }
+.xp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.xp-co { font-family: var(--serif); font-size: 18px; }
+.xp-dates { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+.xp-role { color: var(--thread-2); font-size: 13.5px; margin-top: 2px; }
+.xp-bullets { margin: 8px 0 0; padding-left: 18px; }
+.xp-bullets li { margin: 4px 0; font-size: 14px; color: var(--ink); }
+
+.skillcats { display: flex; flex-direction: column; gap: 14px; }
+.skillcat-name { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+
+/* ---------- Template toggle ---------- */
+.tpl-bar { display: flex; align-items: center; gap: 8px; margin: 22px 0 12px; }
+.tpl-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-right: 4px; }
+.tpl-btn { font-family: var(--mono); font-size: 11px; text-transform: capitalize; padding: 6px 14px; border-radius: 7px; background: var(--bg-3); border: 1px solid var(--line-2); color: var(--ink-dim); cursor: pointer; }
+.tpl-btn.active { border-color: var(--thread); color: var(--thread-2); }
+
+/* ---------- Paper resume preview ---------- */
+.paper { background: #f4efe6; color: #1c1814; border-radius: 8px; padding: 44px 48px; box-shadow: 0 24px 64px rgba(0,0,0,0.45); }
+.paper.compact { padding: 32px 40px; }
+.paper-head { border-bottom: 2px solid #1c1814; padding-bottom: 12px; margin-bottom: 16px; }
+.paper-name { font-family: var(--serif); font-size: 28px; font-weight: 600; }
+.paper.compact .paper-name { font-size: 23px; }
+.paper-contact { font-size: 12px; color: #4a4036; margin-top: 6px; }
+.paper-sec { margin-top: 18px; }
+.paper.compact .paper-sec { margin-top: 12px; }
+.paper-sec > h3 { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #1c1814; border-bottom: 1px solid #c8bca8; padding-bottom: 4px; margin: 0 0 10px; }
+.paper-sec > p { font-size: 13.5px; color: #2c241c; margin: 0; line-height: 1.5; }
+.paper-xp { margin-bottom: 14px; }
+.paper.compact .paper-xp { margin-bottom: 9px; }
+.paper-xp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.paper-co { font-weight: 700; font-size: 14.5px; }
+.paper-dates { font-size: 11.5px; color: #6a5d4c; white-space: nowrap; }
+.paper-role { font-style: italic; font-size: 13px; color: #4a4036; margin-bottom: 4px; }
+.paper-xp ul { margin: 4px 0 0; padding-left: 18px; }
+.paper-xp li { font-size: 13px; color: #2c241c; margin: 3px 0; line-height: 1.45; }
+.paper.compact .paper-xp li { margin: 1.5px 0; }
+.paper-tag { font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #9c7322; border: 1px solid #d9c49a; border-radius: 4px; padding: 0 5px; margin-left: 8px; }
+.paper-skills { font-size: 13px; color: #2c241c; }
+
 /* ---------- Login ---------- */
 .gate { min-height: 100vh; display: grid; place-items: center; padding: 24px;
   background-image: radial-gradient(900px 500px at 50% 0%, rgba(217, 164, 65, 0.09), transparent 60%); }

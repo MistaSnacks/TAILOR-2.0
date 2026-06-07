@@ -1,7 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-// Ingestion status for a single uploaded file (the "Bolt of cloth").
 export const docStatus = v.union(
   v.literal("uploaded"),
   v.literal("parsed"),
@@ -9,7 +8,7 @@ export const docStatus = v.union(
 );
 
 export default defineSchema({
-  // The Cloth: one uploaded file. Raw bytes live in Convex storage (storageId).
+  // The Cloth: one uploaded file.
   corpusDocuments: defineTable({
     filename: v.string(),
     mimeType: v.string(),
@@ -19,53 +18,64 @@ export default defineSchema({
     error: v.optional(v.string()),
   }),
 
-  // The Form — canonical roles (entity-resolution output).
-  canonicalRoles: defineTable({
-    employer: v.string(),
-    title: v.string(),
+  // The Form (JSON Resume aligned). Single-user v1: one profile row (`basics`).
+  profile: defineTable({
+    name: v.optional(v.string()),
+    label: v.optional(v.string()),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    url: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    location: v.optional(v.string()),
+    profiles: v.array(v.object({ network: v.string(), url: v.string() })),
+  }),
+
+  // One row per real job (deduped across documents). Bullets grouped here.
+  experiences: defineTable({
+    company: v.string(),
+    position: v.string(),
+    location: v.optional(v.string()),
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+    isCurrent: v.boolean(),
+    highlights: v.array(v.string()),
+    order: v.number(), // 0 = most recent (reverse-chronological)
+  }),
+
+  skills: defineTable({ name: v.string(), keywords: v.array(v.string()) }),
+
+  education: defineTable({
+    institution: v.string(),
+    area: v.optional(v.string()),
+    studyType: v.optional(v.string()),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
   }),
 
-  // The Form — grouped skills (surface variants collapsed).
-  canonicalSkills: defineTable({
-    name: v.string(),
-    variants: v.array(v.string()),
-  }),
-
-  // Thread: an atomic, deduped real claim.
-  evidenceUnits: defineTable({
-    text: v.string(),
-    roleId: v.optional(v.id("canonicalRoles")),
-  }).index("by_role", ["roleId"]),
-
-  // Provenance: which document(s) a thread was pulled from (M:N — a merged
-  // thread keeps every source link). The trust spine of §2/§6.
-  evidenceProvenance: defineTable({
-    evidenceId: v.id("evidenceUnits"),
-    documentId: v.id("corpusDocuments"),
-  })
-    .index("by_evidence", ["evidenceId"])
-    .index("by_document", ["documentId"]),
-
   // The Pattern: a parsed job description.
-  jobs: defineTable({
-    title: v.string(),
-    rawText: v.string(),
-  }),
+  jobs: defineTable({ title: v.string(), rawText: v.string() }),
 
-  // A Fitting: one tailored résumé for one Pattern. Bullets are grounded (§6/§7).
+  // A Fitting: one tailored résumé for one Pattern, in a chosen ATS template.
   fittings: defineTable({
     jobId: v.id("jobs"),
+    template: v.string(), // "classic" | "compact"
     summary: v.string(),
-    bullets: v.array(
+    experiences: v.array(
       v.object({
-        text: v.string(),
-        type: v.string(), // verbatim | rephrase | infer | compose
-        evidenceIds: v.array(v.string()),
-        relationship: v.optional(v.string()),
+        company: v.string(),
+        position: v.string(),
+        startDate: v.optional(v.string()),
+        endDate: v.optional(v.string()),
+        highlights: v.array(
+          v.object({
+            text: v.string(),
+            type: v.string(),
+            relationship: v.optional(v.string()),
+          }),
+        ),
       }),
     ),
+    skills: v.array(v.string()),
     keywords: v.array(v.string()),
     requirements: v.array(v.object({ text: v.string(), covered: v.boolean() })),
     fit: v.object({

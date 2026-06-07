@@ -35,7 +35,7 @@ export const parseDocument = internalAction({
       });
       if (text.length === 0) throw new Error("empty after parse");
       await ctx.runMutation(internal.documents.setParsed, { documentId, parsedText: text });
-      await ctx.scheduler.runAfter(0, internal.extract.extractEvidence, { documentId });
+      await ctx.scheduler.runAfter(0, internal.canonicalize.buildProfile, {});
     } catch (e) {
       await ctx.runMutation(internal.documents.setFailed, {
         documentId,

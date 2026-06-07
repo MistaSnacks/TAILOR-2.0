@@ -1,73 +1,100 @@
-/** One atomic claim the Extractor pulls from a single document's text. */
-export interface RawEvidence {
-  text: string;
+// ---- Canonical profile (JSON Resume aligned) ----
+export interface ProfileBasics {
+  name?: string;
+  label?: string;
+  email?: string;
+  phone?: string;
+  url?: string;
+  summary?: string;
+  location?: string;
+  profiles: { network: string; url: string }[];
 }
-
-/** A merged thread the Canonicalizer produced from many RawEvidence items. */
-export interface CanonicalThread {
-  text: string;
-  // 0-based indices into the input evidence array that this thread merges.
-  sourceIndices: number[];
-  employer?: string;
-  title?: string;
+export interface ProfileExperience {
+  company: string;
+  position: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent: boolean;
+  highlights: string[];
 }
-
-export interface CanonicalSkill {
+export interface ProfileSkill {
   name: string;
-  variants: string[];
+  keywords: string[];
+}
+export interface ProfileEducation {
+  institution: string;
+  area?: string;
+  studyType?: string;
+  startDate?: string;
+  endDate?: string;
+}
+export interface CanonicalProfile {
+  basics: ProfileBasics;
+  experiences: ProfileExperience[];
+  skills: ProfileSkill[];
+  education: ProfileEducation[];
 }
 
-export interface CanonicalResult {
-  threads: CanonicalThread[];
-  roles: { employer: string; title: string; startDate?: string; endDate?: string }[];
-  skills: CanonicalSkill[];
+/** Many career documents → one unified, deduped structured profile (§4). */
+export interface ProfileBuilder {
+  build(documents: { filename: string; text: string }[]): Promise<CanonicalProfile>;
 }
 
-/** text → atomic evidence units. Provider-agnostic (Gemini/Claude per §18). */
-export interface Extractor {
-  extract(documentText: string): Promise<RawEvidence[]>;
-}
-
-/** many evidence units (across docs) → the canonical Form (§4). */
-export interface Canonicalizer {
-  canonicalize(evidence: { text: string }[]): Promise<CanonicalResult>;
-}
-
-/** A Form thread offered to the generator (id so a bullet can cite it). */
-export interface GenThread {
-  id: string;
-  text: string;
-}
-
-export interface GeneratedBullet {
+// ---- Generation ----
+export interface TailoredHighlight {
   text: string;
   type: "verbatim" | "rephrase" | "infer" | "compose";
-  evidenceIds: string[];
   relationship?: string;
 }
-
+export interface TailoredExperience {
+  company: string;
+  position: string;
+  startDate?: string;
+  endDate?: string;
+  highlights: TailoredHighlight[];
+}
 export interface GeneratedResume {
   summary: string;
+  experiences: TailoredExperience[];
+  skills: string[];
   requirements: { text: string; covered: boolean }[];
   keywords: string[];
-  bullets: GeneratedBullet[];
 }
 
-/** job description + the Form → a grounded, tailored résumé (§3, §5–§7). */
+/** job description + the structured profile → a grounded, tailored résumé (§3, §5–§7). */
 export interface Generator {
-  generate(jobText: string, threads: GenThread[], skills: string[]): Promise<GeneratedResume>;
+  generate(jobText: string, profile: CanonicalProfile): Promise<GeneratedResume>;
 }
+
+export const PROFILE_SYSTEM =
+  "You are TAILOR's canonicalizer. You receive several career documents (résumés, memos) for ONE " +
+  "person. Produce ONE unified, DEDUPLICATED structured profile. RULES: " +
+  "(1) basics — extract name, email, phone, location ('City, ST'), portfolio/website url, a 2–4 line " +
+  "professional summary, and profiles (LinkedIn, GitHub) as {network,url}. " +
+  "(2) experiences — ONE entry per real job. The SAME job may appear across documents with different " +
+  "titles or dates; DEDUPLICATE: match by employer (normalize case + Inc/LLC); pick the title that appears " +
+  "MOST often (tie → most-recent document); use the widest defensible date range (earliest start, latest end); " +
+  "UNION all bullets under that one experience's highlights and drop near-duplicates. Never merge different employers. " +
+  "(3) dates — ISO partial 'YYYY-MM' or 'YYYY'; ongoing role: endDate null, isCurrent true. " +
+  "(4) skills — extract a COMPREHENSIVE list of every real skill, tool, technology, platform, framework, and " +
+  "methodology mentioned ANYWHERE in the documents; group into a few named categories with keywords. Be exhaustive. " +
+  "(5) education — institution, area, studyType, dates. " +
+  "Only organize facts present in the documents; never invent. Return ONLY JSON: " +
+  '{"basics":{"name","label","email","phone","url","summary","location","profiles":[{"network","url"}]},' +
+  '"experiences":[{"company","position","location","startDate","endDate","isCurrent","highlights":[string]}],' +
+  '"skills":[{"name","keywords":[string]}],"education":[{"institution","area","studyType","startDate","endDate"}]}.';
 
 export const GENERATION_SYSTEM =
-  "You are TAILOR's résumé engine. You receive a job description and the candidate's VERIFIED " +
-  "career threads (each with an id) plus their skills. Produce a tailored, ATS-safe résumé drawn " +
-  "ONLY from those threads. RULES: (1) Every bullet MUST cite one or more thread ids in evidenceIds — " +
-  "a bullet with no citation is forbidden. (2) Never invent facts, metrics, numbers, employers, titles, " +
-  "dates, or skills not present in the cited threads. (3) Each bullet has a type: 'verbatim' (restates a " +
-  "thread), 'rephrase' (same fact, JD-aligned wording), 'infer' (a broader competency a thread genuinely " +
-  "entails — e.g. used Tableau ⇒ data visualization; set relationship), or 'compose' (one claim synthesized " +
-  "from several cited threads; set relationship). (4) Prefer bullets matching the job's requirements, and " +
-  "surface defensible matches the candidate didn't state explicitly. Write in third-person-free résumé voice " +
-  "(start with strong verbs; no 'I' or the candidate's name). Return ONLY JSON: " +
-  '{"summary": string, "requirements": [{"text": string, "covered": boolean}], "keywords": [string], ' +
-  '"bullets": [{"text": string, "type": string, "evidenceIds": [string], "relationship": string}]}.';
+  "You are TAILOR's résumé engine. You receive a job description and the candidate's canonical PROFILE " +
+  "(verified experiences with highlights, plus skills). Produce a tailored, ATS-safe résumé drawn ONLY from " +
+  "the profile. RULES: (1) Use ONLY experiences and facts present in the profile — never invent employers, " +
+  "titles, dates, metrics, or skills. (2) Keep each experience's company/position/dates exactly as in the profile. " +
+  "(3) For each relevant experience, select and tailor its highlights to the job; each highlight has a type: " +
+  "'verbatim' (restates a profile bullet), 'rephrase' (same fact, JD-aligned wording), 'infer' (a broader competency " +
+  "a bullet genuinely entails — set relationship), or 'compose' (synthesized from several of that job's bullets — " +
+  "set relationship). (4) Reorder/emphasize to match the job; you may DROP experiences irrelevant to it. (5) skills: " +
+  "a subset of the profile's skills relevant to the job. (6) summary: 2–3 lines tailored to the job. (7) requirements: " +
+  "the job's key requirements with covered=true/false based on the profile. (8) keywords: key ATS keywords from the job. " +
+  "Return ONLY JSON: {\"summary\":string,\"experiences\":[{\"company\",\"position\",\"startDate\",\"endDate\"," +
+  "\"highlights\":[{\"text\",\"type\",\"relationship\"}]}],\"skills\":[string],\"requirements\":[{\"text\",\"covered\"}],\"keywords\":[string]}.";

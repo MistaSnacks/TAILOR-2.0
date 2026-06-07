@@ -2,13 +2,11 @@
 import { GoogleGenAI } from "@google/genai";
 import {
   GENERATION_SYSTEM,
-  type Canonicalizer,
-  type CanonicalResult,
-  type Extractor,
-  type GenThread,
+  PROFILE_SYSTEM,
+  type CanonicalProfile,
   type GeneratedResume,
   type Generator,
-  type RawEvidence,
+  type ProfileBuilder,
 } from "./types";
 
 const MODEL = process.env.LLM_MODEL ?? "gemini-flash-latest"; // §18 = Gemini 3 Flash; override via LLM_MODEL
@@ -23,28 +21,14 @@ async function jsonCall(system: string, user: string): Promise<unknown> {
   return JSON.parse(res.text ?? "");
 }
 
-export class GeminiExtractor implements Extractor {
-  async extract(documentText: string): Promise<RawEvidence[]> {
-    const arr = (await jsonCall(
-      "Extract atomic, factual claims from this resume/career document. Each claim is one real thing the person did — no inference, no embellishment. Return a JSON array: [{\"text\": \"...\"}].",
-      documentText,
-    )) as RawEvidence[];
-    return (arr ?? []).filter((e) => e?.text?.trim());
-  }
-}
-
-export class GeminiCanonicalizer implements Canonicalizer {
-  async canonicalize(evidence: { text: string }[]): Promise<CanonicalResult> {
-    return (await jsonCall(
-      "Canonicalize a career corpus (§4). Given many evidence units (some restate the same fact across documents): (1) merge restatements into one thread, recording the 0-based input indices it merges; (2) resolve roles (employer/title/dates); (3) group skill surface-variants. ONLY organize — never add facts. Return JSON {\"threads\":[{\"text\",\"sourceIndices\":[],\"employer?\",\"title?\"}],\"roles\":[{\"employer\",\"title\",\"startDate?\",\"endDate?\"}],\"skills\":[{\"name\",\"variants\":[]}]}.",
-      JSON.stringify(evidence.map((e, i) => ({ i, text: e.text }))),
-    )) as CanonicalResult;
+export class GeminiProfileBuilder implements ProfileBuilder {
+  async build(documents: { filename: string; text: string }[]): Promise<CanonicalProfile> {
+    return (await jsonCall(PROFILE_SYSTEM, JSON.stringify({ documents }))) as CanonicalProfile;
   }
 }
 
 export class GeminiGenerator implements Generator {
-  async generate(jobText: string, threads: GenThread[], skills: string[]): Promise<GeneratedResume> {
-    const user = JSON.stringify({ jobDescription: jobText, threads, skills });
-    return (await jsonCall(GENERATION_SYSTEM, user)) as GeneratedResume;
+  async generate(jobText: string, profile: CanonicalProfile): Promise<GeneratedResume> {
+    return (await jsonCall(GENERATION_SYSTEM, JSON.stringify({ jobDescription: jobText, profile }))) as GeneratedResume;
   }
 }

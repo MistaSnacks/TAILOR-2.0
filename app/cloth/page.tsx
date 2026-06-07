@@ -9,7 +9,7 @@ import { DocumentList } from "../components/DocumentList";
 export default function ClothPage() {
   const documents = useQuery(api.documents.list);
   const remove = useMutation(api.documents.deleteDocument);
-  const reprocess = useAction(api.extract.reprocessAll);
+  const reprocess = useAction(api.canonicalize.reprocessAll);
   const [rebuilding, setRebuilding] = useState(false);
 
   const onDelete = (id: Id<"corpusDocuments">) => {

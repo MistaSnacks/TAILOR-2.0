@@ -1,9 +1,11 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { useParams } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { dateRange } from "../../components/ProfileView";
 
 const TYPE_LABEL: Record<string, string> = {
   verbatim: "verbatim",
@@ -15,17 +17,55 @@ const TYPE_LABEL: Record<string, string> = {
 export default function FittingRoom() {
   const params = useParams();
   const f = useQuery(api.fittings.getFitting, { fittingId: params.id as Id<"fittings"> });
+  const profile = useQuery(api.profile.getProfile);
+  const [tpl, setTpl] = useState<string | null>(null);
 
   if (f === undefined) return <p style={{ color: "var(--ink-dim)" }}>Loading the fitting…</p>;
   if (f === null) return <div className="empty"><div className="mark">Fitting not found.</div></div>;
 
-  const inferred = f.bullets.filter((b) => b.type === "infer" || b.type === "compose").length;
+  const template = tpl ?? f.template ?? "classic";
+  const basics = profile?.basics ?? null;
+  const inferred = f.experiences.reduce(
+    (n, e) => n + e.highlights.filter((h) => h.type === "infer" || h.type === "compose").length,
+    0,
+  );
+  const totalBullets = f.experiences.reduce((n, e) => n + e.highlights.length, 0);
   const bars = [
     { label: "Overall fit", v: f.fit.overall },
     { label: "Keyword coverage", v: f.fit.keyword },
     { label: "Requirement coverage", v: f.fit.requirement },
     { label: "Format parseability", v: f.fit.format },
   ];
+
+  const SkillsBlock = f.skills.length > 0 && (
+    <section className="paper-sec">
+      <h3>Skills</h3>
+      <p className="paper-skills">{f.skills.join(" · ")}</p>
+    </section>
+  );
+
+  const ExperienceBlock = (
+    <section className="paper-sec">
+      <h3>Experience</h3>
+      {f.experiences.map((e, i) => (
+        <div className="paper-xp" key={i}>
+          <div className="paper-xp-head">
+            <span className="paper-co">{e.company}</span>
+            <span className="paper-dates">{dateRange(e.startDate, e.endDate)}</span>
+          </div>
+          <div className="paper-role">{e.position}</div>
+          <ul>
+            {e.highlights.map((h, j) => (
+              <li key={j} title={`${TYPE_LABEL[h.type] || h.type}${h.relationship ? " — " + h.relationship : ""}`}>
+                {h.text}
+                {(h.type === "infer" || h.type === "compose") && <span className="paper-tag">{TYPE_LABEL[h.type]}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
 
   return (
     <>
@@ -46,31 +86,45 @@ export default function FittingRoom() {
       </div>
 
       <p className="note">
-        <b>{f.bullets.length} bullets surfaced — {inferred} you didn’t state outright.</b> Every line
-        is grounded in your cloth; inferred &amp; composed lines show what they were derived from.
+        <b>{totalBullets} bullets surfaced — {inferred} you didn’t state outright.</b> Every line is
+        drawn from your Form; inferred &amp; composed lines are tagged.
       </p>
 
-      {f.summary && (
-        <>
-          <h2 className="section-title">Summary</h2>
-          <p style={{ color: "var(--ink)", fontSize: 15.5 }}>{f.summary}</p>
-        </>
-      )}
-
-      <h2 className="section-title">Tailored bullets</h2>
-      <div className="threads">
-        {f.bullets.map((b, i) => (
-          <div className="thread" key={i}>
-            <div className="claim">{b.text}</div>
-            <div className="prov">
-              <span className={"btype " + b.type}>{TYPE_LABEL[b.type] || b.type}</span>
-              {b.relationship ? <span> · {b.relationship}</span> : null}
-              {b.grounds.length > 0 && (
-                <span> · from “{b.grounds[0].slice(0, 80)}{b.grounds[0].length > 80 ? "…" : ""}”</span>
-              )}
-            </div>
-          </div>
+      <div className="tpl-bar">
+        <span className="tpl-label">Template</span>
+        {["classic", "compact"].map((t) => (
+          <button key={t} className={"tpl-btn" + (template === t ? " active" : "")} onClick={() => setTpl(t)}>
+            {t}
+          </button>
         ))}
+      </div>
+
+      <div className={"paper " + template}>
+        <header className="paper-head">
+          <div className="paper-name">{basics?.name ?? "Your Name"}</div>
+          <div className="paper-contact">
+            {[basics?.email, basics?.phone, basics?.location].filter(Boolean).join("  ·  ")}
+            {basics?.url ? `  ·  ${basics.url.replace(/^https?:\/\//, "")}` : ""}
+            {(basics?.profiles ?? []).map((p) => `  ·  ${p.network}`).join("")}
+          </div>
+        </header>
+        {f.summary && (
+          <section className="paper-sec">
+            <h3>Summary</h3>
+            <p>{f.summary}</p>
+          </section>
+        )}
+        {template === "compact" ? (
+          <>
+            {SkillsBlock}
+            {ExperienceBlock}
+          </>
+        ) : (
+          <>
+            {ExperienceBlock}
+            {SkillsBlock}
+          </>
+        )}
       </div>
 
       {f.requirements.length > 0 && (
