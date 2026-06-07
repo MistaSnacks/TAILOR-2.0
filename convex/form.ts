@@ -57,6 +57,16 @@ export const addEvidence = internalMutation({
   },
 });
 
+/** Wipe all derived Form state (threads, provenance, roles, skills). */
+export const clearForm = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    for (const table of ["evidenceProvenance", "evidenceUnits", "canonicalRoles", "canonicalSkills"] as const) {
+      for (const row of await ctx.db.query(table).collect()) await ctx.db.delete(row._id);
+    }
+  },
+});
+
 /**
  * Rebuild the Form from a Canonicalizer result. Replaces threads/roles/skills
  * with the merged set, preserving provenance by unioning the source threads'

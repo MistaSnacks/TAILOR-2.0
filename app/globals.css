@@ -147,6 +147,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01e
 }
 .row .file { font-family: var(--mono); font-size: 13px; color: var(--ink); }
 .row .meta { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-left: auto; }
+.row-del { margin-left: 12px; flex: none; width: 28px; height: 28px; border-radius: 7px; background: none; border: 1px solid var(--line-2); color: var(--ink-faint); cursor: pointer; font-size: 12px; line-height: 1; transition: all 0.14s ease; }
+.row-del:hover { border-color: var(--bad); color: var(--bad); }
 
 .threads { display: flex; flex-direction: column; gap: 0; }
 .thread {

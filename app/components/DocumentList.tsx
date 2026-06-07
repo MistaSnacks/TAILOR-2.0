@@ -1,6 +1,12 @@
-import type { Doc } from "../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 
-export function DocumentList({ documents }: { documents: Doc<"corpusDocuments">[] }) {
+export function DocumentList({
+  documents,
+  onDelete,
+}: {
+  documents: Doc<"corpusDocuments">[];
+  onDelete?: (id: Id<"corpusDocuments">) => void;
+}) {
   if (documents.length === 0) {
     return (
       <div className="empty">
@@ -19,6 +25,11 @@ export function DocumentList({ documents }: { documents: Doc<"corpusDocuments">[
             {doc.mimeType || "unknown"}
             {doc.error ? ` · ${doc.error}` : ""}
           </span>
+          {onDelete && (
+            <button className="row-del" onClick={() => onDelete(doc._id)} title="Delete this document">
+              ✕
+            </button>
+          )}
         </div>
       ))}
     </div>

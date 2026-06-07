@@ -64,3 +64,32 @@ export const getDocument = internalMutation({
   args: { documentId: v.id("corpusDocuments") },
   handler: async (ctx, { documentId }) => ctx.db.get(documentId),
 });
+
+/**
+ * Delete a document and everything tied to it: its stored file, its provenance
+ * edges, and any evidence unit left with no remaining source. Then re-derive the
+ * Form (roles/skills/merged threads) from what survives.
+ */
+export const deleteDocument = mutation({
+  args: { documentId: v.id("corpusDocuments") },
+  handler: async (ctx, { documentId }) => {
+    const doc = await ctx.db.get(documentId);
+    if (!doc) return;
+    const edges = await ctx.db
+      .query("evidenceProvenance")
+      .withIndex("by_document", (q) => q.eq("documentId", documentId))
+      .collect();
+    for (const edge of edges) {
+      await ctx.db.delete(edge._id);
+      const remaining = await ctx.db
+        .query("evidenceProvenance")
+        .withIndex("by_evidence", (q) => q.eq("evidenceId", edge.evidenceId))
+        .collect();
+      if (remaining.length === 0) await ctx.db.delete(edge.evidenceId);
+    }
+    if (doc.storageId) await ctx.storage.delete(doc.storageId);
+    await ctx.db.delete(documentId);
+    // Re-canonicalize so skills/roles/threads reflect the remaining cloth.
+    await ctx.scheduler.runAfter(0, internal.canonicalize.rebuild, {});
+  },
+});

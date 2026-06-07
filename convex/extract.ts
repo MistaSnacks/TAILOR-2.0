@@ -4,19 +4,25 @@ import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
 import { getExtractor } from "./llm";
 
-/** Re-run extraction for every already-parsed document (e.g. after setting the key). */
+/**
+ * Re-derive the whole Form from scratch: clear, re-extract every parsed doc
+ * inline (sequential — no race), then a single canonicalize. Deterministic.
+ */
 export const reprocessAll = action({
   args: {},
   handler: async (ctx) => {
     const docs = await ctx.runQuery(api.documents.list);
-    let scheduled = 0;
+    await ctx.runMutation(internal.form.clearForm, {});
+    let docsProcessed = 0;
     for (const d of docs) {
-      if (d.status === "parsed") {
-        await ctx.scheduler.runAfter(0, internal.extract.extractEvidence, { documentId: d._id });
-        scheduled++;
+      if (d.status === "parsed" && d.parsedText) {
+        const evidence = await getExtractor().extract(d.parsedText);
+        await ctx.runMutation(internal.form.addEvidence, { documentId: d._id, evidence });
+        docsProcessed++;
       }
     }
-    return { scheduled };
+    await ctx.scheduler.runAfter(0, internal.canonicalize.rebuild, {});
+    return { docsProcessed };
   },
 });
 
