@@ -30,7 +30,29 @@ export const saveFitting = internalMutation({
       keyword: v.number(),
       requirement: v.number(),
       format: v.number(),
+      coverage: v.optional(v.number()),
+      quality: v.optional(v.number()),
+      transferability: v.optional(v.number()),
     }),
+    gate: v.optional(
+      v.object({
+        pass: v.boolean(),
+        truthfulness: v.boolean(),
+        fidelity: v.boolean(),
+        consistency: v.boolean(),
+        blockingReasons: v.array(v.string()),
+      }),
+    ),
+    bulletVerdicts: v.optional(
+      v.array(
+        v.object({
+          text: v.string(),
+          defensible: v.boolean(),
+          evidence: v.optional(v.string()),
+          reason: v.optional(v.string()),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => ctx.db.insert("fittings", args),
 });
@@ -70,6 +92,8 @@ export const getFitting = query({
       keywords: f.keywords,
       requirements: f.requirements,
       fit: f.fit,
+      gate: f.gate ?? null,
+      bulletVerdicts: f.bulletVerdicts ?? [],
     };
   },
 });
