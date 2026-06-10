@@ -3,6 +3,8 @@
 > **Purpose.** A research-backed, quantitative definition of what a high-quality résumé looks like, and how TAILOR should enforce it during generation. Compiled 2026-06-09 from a 10-agent web research sweep of authoritative career sources (Harvard/MIT/Penn/Berkeley career services, Jobscan, Resume Worded, Indeed, Monster, Google/Laszlo Bock, recruiter eye-tracking studies). Numbers are rules of thumb a generator can enforce — relevance to the target job always overrides defaults.
 >
 > Pairs with the design spec (`docs/specs/2026-05-29-tailor-design.html`) — this becomes the numeric rulebook behind §16 (best-version), §17 (selection/ranking), and the generation prompt (§18).
+>
+> **Companion doc:** `2026-06-09-resume-quality.md` defines the *doctrine* (moat/mission/ICP) and the **verification gates + rubric** (truthfulness, fidelity, consistency) that adjudicate output quality. This standard supplies the *numeric content rules*; that doc supplies the *gate definitions*. Both are enforced by the verification pass in `docs/plans/2026-06-10-verification-and-rubric.md`.
 
 ---
 
