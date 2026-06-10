@@ -109,3 +109,49 @@ export const GENERATION_SYSTEM =
   "REQUIREMENTS: the job's key requirements with covered=true/false based on the profile. KEYWORDS: key ATS keywords from the job.\n" +
   "Return ONLY JSON: {\"summary\":string,\"experiences\":[{\"company\",\"position\",\"startDate\",\"endDate\"," +
   "\"highlights\":[{\"text\",\"type\",\"relationship\"}]}],\"skills\":[string],\"requirements\":[{\"text\",\"covered\"}],\"keywords\":[string]}.";
+
+// ---- Verification (independent pass; §7 verification gate) ----
+export interface BulletVerdict {
+  text: string;
+  defensible: boolean; // grounded in profile evidence or a defensible entailment
+  evidence?: string; // the profile fact/bullet that supports it
+  reason?: string; // if not defensible, why
+}
+export interface VerificationReport {
+  bulletVerdicts: BulletVerdict[];
+  truthfulnessPass: boolean; // every bullet defensible
+  fidelityPass: boolean; // dates/titles/employers/metrics match the profile
+  fidelityIssues: string[];
+  consistencyPass: boolean; // no internal contradictions, agrees with the profile
+  consistencyIssues: string[];
+  coverageScore: number; // 0..100 — corpus-defensible JD requirements surfaced
+  transferabilityScore: number; // 0..100 — off-domain evidence reframed truthfully
+}
+
+/** A separate pass (ideally a different vendor than the Generator) that adjudicates a generated résumé. */
+export interface Verifier {
+  verify(
+    jobText: string,
+    profile: CanonicalProfile,
+    resume: GeneratedResume,
+  ): Promise<VerificationReport>;
+}
+
+export const VERIFICATION_SYSTEM =
+  "You are TAILOR's independent résumé VERIFIER. You did NOT write this résumé. Input: a job description, " +
+  "the candidate's canonical PROFILE (ground truth), and a generated RÉSUMÉ. Adjudicate the résumé against the " +
+  "profile ONLY. Be skeptical — your job is to catch fabrication, not to praise.\n" +
+  "HARD GATES:\n" +
+  "(1) TRUTHFULNESS — for EACH résumé highlight, decide if it is defensible: directly stated in the profile OR a " +
+  "defensible entailment of profile evidence (e.g. 'used Tableau' entails 'data visualization'). A highlight that " +
+  "adds an employer, title, metric, or skill NOT supported by the profile is NOT defensible. Return a verdict per bullet.\n" +
+  "(2) FIDELITY — every company, position, date, and metric must match the profile. List any mismatch.\n" +
+  "(3) CONSISTENCY — no internal contradictions (overlapping dates, conflicting claims) and nothing that contradicts " +
+  "the profile. List any issue.\n" +
+  "GRADED: coverageScore 0–100 = how well the résumé surfaces the candidate's strongest profile evidence for the JD's " +
+  "requirements (penalize defensible evidence left out; do NOT reward covering a requirement with a fabrication). " +
+  "transferabilityScore 0–100 = for off-domain JDs, how legibly transferable evidence is reframed WITHOUT overreaching.\n" +
+  "truthfulnessPass = every bullet defensible. fidelityPass = no mismatches. consistencyPass = no issues.\n" +
+  'Return ONLY JSON: {"bulletVerdicts":[{"text","defensible","evidence","reason"}],"truthfulnessPass":bool,' +
+  '"fidelityPass":bool,"fidelityIssues":[string],"consistencyPass":bool,"consistencyIssues":[string],' +
+  '"coverageScore":number,"transferabilityScore":number}.';
