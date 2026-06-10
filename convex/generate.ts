@@ -11,8 +11,9 @@ const VALID = ["verbatim", "rephrase", "infer", "compose"];
 
 /**
  * Generate one Fitting for a pasted JD against the structured profile (§3, §5–§9).
- * v1 simplifications vs spec: single grounded pass (no separate cross-vendor
- * verifier §7, no §16 coverage loop). The generator is constrained to the profile.
+ * Grounded generation + an independent cross-vendor verifier (§7) that adjudicates
+ * the truthfulness/fidelity/consistency hard gates and grades coverage. Still TODO:
+ * the §16 coverage *revise* loop — this gates (pass/fail) but does not yet re-generate.
  */
 export const generateFitting = action({
   args: { title: v.string(), rawText: v.string(), template: v.optional(v.string()) },
