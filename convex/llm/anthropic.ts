@@ -4,10 +4,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import {
   GENERATION_SYSTEM,
   PROFILE_SYSTEM,
+  VERIFICATION_SYSTEM,
   type CanonicalProfile,
   type GeneratedResume,
   type Generator,
   type ProfileBuilder,
+  type Verifier,
+  type VerificationReport,
 } from "./types";
 
 const client = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -39,5 +42,18 @@ export class ClaudeProfileBuilder implements ProfileBuilder {
 export class ClaudeGenerator implements Generator {
   async generate(jobText: string, profile: CanonicalProfile): Promise<GeneratedResume> {
     return (await call(GENERATION_SYSTEM, JSON.stringify({ jobDescription: jobText, profile }))) as GeneratedResume;
+  }
+}
+
+export class ClaudeVerifier implements Verifier {
+  async verify(
+    jobText: string,
+    profile: CanonicalProfile,
+    resume: GeneratedResume,
+  ): Promise<VerificationReport> {
+    return (await call(
+      VERIFICATION_SYSTEM,
+      JSON.stringify({ jobDescription: jobText, profile, resume }),
+    )) as VerificationReport;
   }
 }
