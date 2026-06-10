@@ -2,8 +2,10 @@
 import { action } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
-import { getGenerator } from "./llm";
+import { getGenerator, getVerifier } from "./llm";
 import type { CanonicalProfile } from "./llm";
+import { scoreDeterministic, type ScorableResume } from "./quality/rubric";
+import { buildQualityVerdict } from "./quality/score";
 
 const VALID = ["verbatim", "rephrase", "infer", "compose"];
 
@@ -68,20 +70,32 @@ export const generateFitting = action({
       .filter((e) => e.highlights.length > 0);
 
     const skills = (gen.skills ?? []).filter((sk) => typeof sk === "string" && sk.trim());
+
+    // Independent verification (separate pass, ideally a different vendor).
+    const verification = await getVerifier().verify(rawText, canonical, gen);
+
+    // Deterministic rubric over the cleaned résumé.
+    const scorable: ScorableResume = {
+      summary: gen.summary ?? "",
+      experiences: experiences.map((e) => ({ highlights: e.highlights.map((h) => ({ text: h.text })) })),
+      skills,
+    };
+    const deterministic = scoreDeterministic(scorable);
+    const verdict = buildQualityVerdict(deterministic, verification);
+
+    // Legacy sub-scores retained for the existing UI.
+    const keywords = (gen.keywords ?? []).filter((k) => typeof k === "string" && k.trim());
+    const reqs = (gen.requirements ?? []).filter((r) => r && typeof r.text === "string" && r.text.trim());
+    const requirement = reqs.length
+      ? Math.round((reqs.filter((r) => r.covered).length / reqs.length) * 100)
+      : 0;
     const allText = (
-      gen.summary +
-      " " +
-      experiences.flatMap((e) => e.highlights.map((h) => h.text)).join(" ") +
-      " " +
+      gen.summary + " " +
+      experiences.flatMap((e) => e.highlights.map((h) => h.text)).join(" ") + " " +
       skills.join(" ")
     ).toLowerCase();
-    const keywords = (gen.keywords ?? []).filter((k) => typeof k === "string" && k.trim());
     const kwHits = keywords.filter((k) => allText.includes(k.toLowerCase())).length;
     const keyword = keywords.length ? Math.round((kwHits / keywords.length) * 100) : 0;
-    const reqs = (gen.requirements ?? []).filter((r) => r && typeof r.text === "string" && r.text.trim());
-    const requirement = reqs.length ? Math.round((reqs.filter((r) => r.covered).length / reqs.length) * 100) : 0;
-    const format = 96;
-    const overall = Math.round(requirement * 0.4 + keyword * 0.35 + format * 0.25);
 
     const fittingId = await ctx.runMutation(internal.fittings.saveFitting, {
       jobId,
@@ -91,7 +105,23 @@ export const generateFitting = action({
       skills,
       keywords,
       requirements: reqs.map((r) => ({ text: r.text, covered: !!r.covered })),
-      fit: { overall, keyword, requirement, format },
+      fit: {
+        overall: verdict.fit.overall,
+        keyword,
+        requirement,
+        format: deterministic.score, // rubric score replaces the hardcoded 96
+        coverage: verdict.fit.coverage,
+        quality: verdict.fit.quality,
+        transferability: verdict.fit.transferability,
+      },
+      gate: {
+        pass: verdict.gatePass,
+        truthfulness: verdict.gates.truthfulness,
+        fidelity: verdict.gates.fidelity,
+        consistency: verdict.gates.consistency,
+        blockingReasons: verdict.blockingReasons,
+      },
+      bulletVerdicts: verification.bulletVerdicts,
     });
     return { fittingId: fittingId as string };
   },
