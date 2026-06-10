@@ -4,7 +4,7 @@
 import type { Generator, ProfileBuilder, Verifier } from "./types";
 import { GeminiGenerator, GeminiProfileBuilder, GeminiVerifier } from "./gemini";
 import { ClaudeGenerator, ClaudeProfileBuilder, ClaudeVerifier } from "./anthropic";
-import { pickVerifierProvider } from "./verifier-select";
+import { pickVerifierProvider } from "./verifierSelect";
 
 const provider = () => (process.env.LLM_PROVIDER ?? "gemini").toLowerCase();
 

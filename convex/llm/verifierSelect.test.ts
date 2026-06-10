@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickVerifierProvider } from "./verifier-select";
+import { pickVerifierProvider } from "./verifierSelect";
 
 describe("pickVerifierProvider", () => {
   const bothKeys = { GEMINI_API_KEY: "g", ANTHROPIC_API_KEY: "a" };
