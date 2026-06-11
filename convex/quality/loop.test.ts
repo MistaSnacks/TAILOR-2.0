@@ -1,7 +1,17 @@
 // convex/quality/loop.test.ts
 import { describe, it, expect } from "vitest";
-import { nextLoopState } from "./loop";
-import type { CoveragePlanItem } from "../llm/types";
+import { nextLoopState, runCoverageLoop } from "./loop";
+import type {
+  CoveragePlanItem,
+  CanonicalProfile,
+  CoverageMap,
+  GeneratedResume,
+  Planner,
+  Generator,
+  Reviser,
+  Verifier,
+  VerificationReport,
+} from "../llm/types";
 
 const gap = (requirement: string): CoveragePlanItem => ({ requirement, supportable: true, expectedMarkers: [requirement.toLowerCase()] });
 
@@ -28,18 +38,6 @@ describe("nextLoopState", () => {
     expect(d).toEqual({ kind: "continue", targets: ["a", "b"] });
   });
 });
-
-import { runCoverageLoop } from "./loop";
-import type {
-  CanonicalProfile,
-  CoverageMap,
-  GeneratedResume,
-  Planner,
-  Generator,
-  Reviser,
-  Verifier,
-  VerificationReport,
-} from "../llm/types";
 
 const PROFILE = { basics: { profiles: [] }, experiences: [], skills: [], education: [] } as unknown as CanonicalProfile;
 const bulletDraft = (texts: string[]): GeneratedResume => ({
@@ -95,6 +93,10 @@ describe("runCoverageLoop", () => {
       planner: planner(SUPPORTABLE_K8S), generator: generator(base), reviser, verifier: verifier(),
     });
     expect(res.rounds).toBe(1); // one revise applied (gate passed), then stalled
+    // A stalled SUPPORTABLE gap is intentionally NOT surfaced as a suggestion —
+    // the candidate genuinely has that evidence; suggestions are only for
+    // unsupportable / budget-blocked / gate-rejected requirements.
+    expect(res.improvementSuggestions).toEqual([]);
   });
 
   it("surfaces unsupportable requirements as suggestions and does not loop on them", async () => {
@@ -106,6 +108,20 @@ describe("runCoverageLoop", () => {
     });
     expect(res.rounds).toBe(0);
     expect(res.improvementSuggestions).toEqual([{ requirement: "PhD", reason: "unsupportable" }]);
+  });
+
+  it("degrades to single-shot (no rounds, no suggestions) when the planner throws", async () => {
+    const throwingPlanner: Planner = { plan: async () => { throw new Error("planner boom"); } };
+    const base = bulletDraft(["Cut latency 40%"]);
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE,
+      planner: throwingPlanner, generator: generator(base),
+      reviser: { revise: async (_j, _p, d) => d }, verifier: verifier(),
+    });
+    expect(res.coverageMap).toEqual([]);
+    expect(res.rounds).toBe(0);
+    expect(res.improvementSuggestions).toEqual([]);
+    expect(res.draft).toEqual(base);
   });
 });
 
