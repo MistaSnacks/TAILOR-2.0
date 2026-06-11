@@ -51,4 +51,42 @@ describe("diffCoverage", () => {
     );
     expect(covered.length).toBe(1);
   });
+
+  it("does not fuse adjacent segments into a false-positive match", () => {
+    // "deep learn" + "ing" must NOT read as "deep learning" across the segment boundary
+    const d = {
+      summary: "deep learn",
+      experiences: [{ company: "C", position: "P", highlights: [{ text: "ing frameworks", type: "rephrase" }] }],
+      skills: [],
+      requirements: [],
+      keywords: [],
+    } as unknown as import("../llm/types").GeneratedResume;
+    const { covered, gaps } = diffCoverage(
+      [{ requirement: "ML", supportable: true, expectedMarkers: ["deep learning"] }],
+      draftText(d),
+    );
+    expect(covered.length).toBe(0);
+    expect(gaps.length).toBe(1);
+  });
+
+  it("matches a multi-word marker within a single segment", () => {
+    const d = {
+      summary: "",
+      experiences: [{ company: "C", position: "P", highlights: [{ text: "Cut latency 40% with Redis caching", type: "rephrase" }] }],
+      skills: [],
+      requirements: [],
+      keywords: [],
+    } as unknown as import("../llm/types").GeneratedResume;
+    const { covered } = diffCoverage(
+      [{ requirement: "Caching", supportable: true, expectedMarkers: ["redis caching"] }],
+      draftText(d),
+    );
+    expect(covered.length).toBe(1);
+  });
+
+  it("handles empty draft and empty map without error", () => {
+    const empty = { summary: "", experiences: [], skills: [], requirements: [], keywords: [] } as unknown as import("../llm/types").GeneratedResume;
+    expect(draftText(empty)).toBe("");
+    expect(diffCoverage([], "anything")).toEqual({ covered: [], gaps: [] });
+  });
 });
