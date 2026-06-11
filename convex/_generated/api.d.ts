@@ -16,9 +16,15 @@ import type * as llm_anthropic from "../llm/anthropic.js";
 import type * as llm_gemini from "../llm/gemini.js";
 import type * as llm_index from "../llm/index.js";
 import type * as llm_types from "../llm/types.js";
+import type * as llm_verifierSelect from "../llm/verifierSelect.js";
 import type * as parse from "../parse.js";
 import type * as parsing_extractText from "../parsing/extractText.js";
 import type * as profile from "../profile.js";
+import type * as quality_coverage from "../quality/coverage.js";
+import type * as quality_loop from "../quality/loop.js";
+import type * as quality_rubric from "../quality/rubric.js";
+import type * as quality_score from "../quality/score.js";
+import type * as quality_select from "../quality/select.js";
 
 import type {
   ApiFromModules,
@@ -35,9 +41,15 @@ declare const fullApi: ApiFromModules<{
   "llm/gemini": typeof llm_gemini;
   "llm/index": typeof llm_index;
   "llm/types": typeof llm_types;
+  "llm/verifierSelect": typeof llm_verifierSelect;
   parse: typeof parse;
   "parsing/extractText": typeof parsing_extractText;
   profile: typeof profile;
+  "quality/coverage": typeof quality_coverage;
+  "quality/loop": typeof quality_loop;
+  "quality/rubric": typeof quality_rubric;
+  "quality/score": typeof quality_score;
+  "quality/select": typeof quality_select;
 }>;
 
 /**
