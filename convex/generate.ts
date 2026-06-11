@@ -2,8 +2,9 @@
 import { action } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
-import { getGenerator, getVerifier } from "./llm";
+import { getGenerator, getVerifier, getPlanner, getReviser } from "./llm";
 import type { CanonicalProfile } from "./llm";
+import { runCoverageLoop } from "./quality/loop";
 import { scoreDeterministic, type ScorableResume } from "./quality/rubric";
 import { buildQualityVerdict } from "./quality/score";
 
@@ -12,8 +13,10 @@ const VALID = ["verbatim", "rephrase", "infer", "compose"];
 /**
  * Generate one Fitting for a pasted JD against the structured profile (§3, §5–§9).
  * Grounded generation + an independent cross-vendor verifier (§7) that adjudicates
- * the truthfulness/fidelity/consistency hard gates and grades coverage. Still TODO:
- * the §16 coverage *revise* loop — this gates (pass/fail) but does not yet re-generate.
+ * the truthfulness/fidelity/consistency hard gates and grades coverage.
+ * Runs the §16 bounded coverage loop (plan → generate → diff → targeted revise → fixed point)
+ * with an independent cross-vendor verifier (§7) gating every round; genuine gaps are persisted
+ * as improvementSuggestions. Full §17 selection (density-greedy swap) is still a follow-on.
  */
 export const generateFitting = action({
   args: { title: v.string(), rawText: v.string(), template: v.optional(v.string()) },
@@ -51,7 +54,17 @@ export const generateFitting = action({
       })),
     };
 
-    const gen = await getGenerator().generate(rawText, canonical);
+    // §16 bounded coverage loop: plan → generate → diff → revise → fixed point.
+    const loop = await runCoverageLoop({
+      jobText: rawText,
+      profile: canonical,
+      planner: getPlanner(),
+      generator: getGenerator(),
+      reviser: getReviser(),
+      verifier: getVerifier(),
+    });
+    const gen = loop.draft;
+    const verification = loop.verification;
 
     const experiences = (gen.experiences ?? [])
       .filter((e) => e && e.company)
@@ -72,10 +85,7 @@ export const generateFitting = action({
 
     const skills = (gen.skills ?? []).filter((sk) => typeof sk === "string" && sk.trim());
 
-    // Independent verification (separate pass, ideally a different vendor).
-    const verification = await getVerifier().verify(rawText, canonical, gen);
-
-    // Deterministic rubric over the cleaned résumé.
+    // Deterministic rubric over the cleaned, ACCEPTED résumé.
     const scorable: ScorableResume = {
       summary: gen.summary ?? "",
       experiences: experiences.map((e) => ({ highlights: e.highlights.map((h) => ({ text: h.text })) })),
@@ -123,6 +133,9 @@ export const generateFitting = action({
         blockingReasons: verdict.blockingReasons,
       },
       bulletVerdicts: verification.bulletVerdicts,
+      coverageMap: loop.coverageMap,
+      rounds: loop.rounds,
+      improvementSuggestions: loop.improvementSuggestions,
     });
     return { fittingId: fittingId as string };
   },
