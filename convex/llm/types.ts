@@ -155,3 +155,47 @@ export const VERIFICATION_SYSTEM =
   'Return ONLY JSON: {"bulletVerdicts":[{"text","defensible","evidence","reason"}],"truthfulnessPass":bool,' +
   '"fidelityPass":bool,"fidelityIssues":[string],"consistencyPass":bool,"consistencyIssues":[string],' +
   '"coverageScore":number,"transferabilityScore":number}.';
+
+// ---- Coverage planning + revision (§16 bounded coverage loop) ----
+export interface CoveragePlanItem {
+  requirement: string;        // a single JD requirement
+  supportable: boolean;       // can the corpus defensibly cover it (direct or entailment)?
+  evidenceRef?: string;       // which experience/skill entails it (human-readable)
+  expectedMarkers: string[];  // keyword/phrase variants expected in the draft if covered
+}
+export type CoverageMap = CoveragePlanItem[];
+
+/** Maps a JD's requirements to corpus evidence BEFORE any prose exists (§16 plan step). */
+export interface Planner {
+  plan(jobText: string, profile: CanonicalProfile): Promise<CoverageMap>;
+}
+
+/** Constrained re-generate: surface evidence for specific gaps, change nothing else (§16 revise step). */
+export interface Reviser {
+  revise(
+    jobText: string,
+    profile: CanonicalProfile,
+    draft: GeneratedResume,
+    targets: string[],
+  ): Promise<GeneratedResume>;
+}
+
+export const PLANNER_SYSTEM =
+  "You are TAILOR's coverage PLANNER. You map a job description's requirements to the candidate's canonical " +
+  "PROFILE BEFORE any résumé exists. You do NOT write a résumé. For EACH distinct requirement in the JD decide: " +
+  "is it defensibly supportable from the profile — directly stated OR a defensible entailment of profile evidence " +
+  "(e.g. 'used Tableau' entails 'data visualization')? If supportable, name the evidence (which experience or skill) " +
+  "and list the keyword/phrase VARIANTS that would prove it is covered if they appear in the résumé (e.g. " +
+  "['Kubernetes','K8s','container orchestration']). Mark genuinely unsupported requirements supportable:false — " +
+  "do NOT stretch. Return ONLY JSON: " +
+  '{"coverage":[{"requirement":string,"supportable":boolean,"evidenceRef":string,"expectedMarkers":[string]}]}.';
+
+export const REVISE_SYSTEM =
+  "You are TAILOR's résumé REVISER. You are given a job description, the candidate's canonical PROFILE, an existing " +
+  "résumé DRAFT, and a short list of TARGET requirements the draft failed to surface — each of which the profile " +
+  "CAN defensibly support. Add or strengthen evidence for ONLY those targets, drawn ONLY from the profile. Change " +
+  "NOTHING else: keep every other bullet, the summary, employers, positions, and dates exactly as in the draft. " +
+  "Never fabricate to close a gap; if a target cannot be covered defensibly, leave the draft unchanged for it. " +
+  "Obey the same grounding and bullet-quality rules as generation. Return the SAME résumé JSON shape as the draft: " +
+  '{"summary":string,"experiences":[{"company","position","startDate","endDate","highlights":[{"text","type","relationship"}]}],"skills":[string],"requirements":[{"text","covered"}],"keywords":[string]}.';
+
