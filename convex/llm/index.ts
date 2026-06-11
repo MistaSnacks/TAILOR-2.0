@@ -1,9 +1,9 @@
 "use node";
 // Provider selection. Swap key/provider/model via Convex deployment env vars,
 // not code: LLM_PROVIDER (gemini|anthropic), GEMINI_API_KEY/ANTHROPIC_API_KEY, LLM_MODEL.
-import type { Generator, ProfileBuilder, Verifier } from "./types";
-import { GeminiGenerator, GeminiProfileBuilder, GeminiVerifier } from "./gemini";
-import { ClaudeGenerator, ClaudeProfileBuilder, ClaudeVerifier } from "./anthropic";
+import type { Generator, Planner, ProfileBuilder, Reviser, Verifier } from "./types";
+import { GeminiGenerator, GeminiPlanner, GeminiProfileBuilder, GeminiReviser, GeminiVerifier } from "./gemini";
+import { ClaudeGenerator, ClaudePlanner, ClaudeProfileBuilder, ClaudeReviser, ClaudeVerifier } from "./anthropic";
 import { pickVerifierProvider } from "./verifierSelect";
 
 const provider = () => (process.env.LLM_PROVIDER ?? "gemini").toLowerCase();
@@ -18,6 +18,16 @@ export function getGenerator(): Generator {
 export function getVerifier(): Verifier {
   const chosen = pickVerifierProvider(provider(), process.env);
   return chosen === "anthropic" ? new ClaudeVerifier() : new GeminiVerifier();
+}
+
+// Planner is independent of the Generator — reuse the verifier's vendor rule.
+export function getPlanner(): Planner {
+  const chosen = pickVerifierProvider(provider(), process.env);
+  return chosen === "anthropic" ? new ClaudePlanner() : new GeminiPlanner();
+}
+// Reviser is a constrained re-generate — same vendor as the Generator.
+export function getReviser(): Reviser {
+  return provider() === "anthropic" ? new ClaudeReviser() : new GeminiReviser();
 }
 
 export * from "./types";
