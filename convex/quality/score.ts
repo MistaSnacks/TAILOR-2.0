@@ -3,6 +3,10 @@
 import type { DeterministicReport } from "./rubric";
 import type { VerificationReport } from "../llm/types";
 
+export function hardGatesPass(ver: VerificationReport): boolean {
+  return ver.truthfulnessPass && ver.fidelityPass && ver.consistencyPass;
+}
+
 export interface QualityVerdict {
   gatePass: boolean;
   gates: { truthfulness: boolean; fidelity: boolean; consistency: boolean };
@@ -24,7 +28,7 @@ export function buildQualityVerdict(
     fidelity: ver.fidelityPass,
     consistency: ver.consistencyPass,
   };
-  const gatePass = gates.truthfulness && gates.fidelity && gates.consistency;
+  const gatePass = hardGatesPass(ver);
 
   const blockingReasons: string[] = [];
   if (!gates.truthfulness) {

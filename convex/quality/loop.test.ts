@@ -28,3 +28,88 @@ describe("nextLoopState", () => {
     expect(d).toEqual({ kind: "continue", targets: ["a", "b"] });
   });
 });
+
+import { runCoverageLoop } from "./loop";
+import type {
+  CanonicalProfile,
+  CoverageMap,
+  GeneratedResume,
+  Planner,
+  Generator,
+  Reviser,
+  Verifier,
+  VerificationReport,
+} from "../llm/types";
+
+const PROFILE = { basics: { profiles: [] }, experiences: [], skills: [], education: [] } as unknown as CanonicalProfile;
+const bulletDraft = (texts: string[]): GeneratedResume => ({
+  summary: "engineer",
+  experiences: [{ company: "Acme", position: "SWE", highlights: texts.map((t) => ({ text: t, type: "rephrase" as const })) }],
+  skills: [],
+  requirements: [],
+  keywords: [],
+});
+const PASS: VerificationReport = {
+  bulletVerdicts: [], truthfulnessPass: true, fidelityPass: true, fidelityIssues: [],
+  consistencyPass: true, consistencyIssues: [], coverageScore: 80, transferabilityScore: 70,
+};
+const FAIL: VerificationReport = { ...PASS, truthfulnessPass: false };
+
+const planner = (map: CoverageMap): Planner => ({ plan: async () => map });
+const generator = (draft: GeneratedResume): Generator => ({ generate: async () => draft });
+// Verifier fails any draft whose text contains the sentinel "fabricated".
+const verifier = (): Verifier => ({ verify: async (_j, _p, r) => (JSON.stringify(r).includes("fabricated") ? FAIL : PASS) });
+
+const SUPPORTABLE_K8S: CoverageMap = [{ requirement: "Kubernetes", supportable: true, expectedMarkers: ["kubernetes"] }];
+
+describe("runCoverageLoop", () => {
+  it("closes a supportable-but-absent requirement in exactly one revise round", async () => {
+    const reviser: Reviser = { revise: async (_j, _p, d) => bulletDraft([...d.experiences[0].highlights.map((h) => h.text), "Ran kubernetes in prod"]) };
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE,
+      planner: planner(SUPPORTABLE_K8S), generator: generator(bulletDraft(["Cut latency 40%"])),
+      reviser, verifier: verifier(),
+    });
+    expect(res.rounds).toBe(1);
+    expect(draftTextHas(res.draft, "kubernetes")).toBe(true);
+    expect(res.improvementSuggestions).toEqual([]);
+  });
+
+  it("reverts a revise that trips the gate and records a gate-rejected suggestion", async () => {
+    const base = bulletDraft(["Cut latency 40%"]);
+    const reviser: Reviser = { revise: async () => bulletDraft(["Cut latency 40%", "Led a fabricated $50M deal"]) };
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE,
+      planner: planner(SUPPORTABLE_K8S), generator: generator(base), reviser, verifier: verifier(),
+    });
+    expect(res.rounds).toBe(0);
+    expect(res.draft).toEqual(base); // reverted to the pre-revise draft
+    expect(res.improvementSuggestions).toContainEqual({ requirement: "Kubernetes", reason: "gate-rejected" });
+  });
+
+  it("halts (stalls) when a revise closes no gaps", async () => {
+    const base = bulletDraft(["Cut latency 40%"]);
+    const reviser: Reviser = { revise: async (_j, _p, d) => d }; // never adds the marker
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE,
+      planner: planner(SUPPORTABLE_K8S), generator: generator(base), reviser, verifier: verifier(),
+    });
+    expect(res.rounds).toBe(1); // one revise applied (gate passed), then stalled
+  });
+
+  it("surfaces unsupportable requirements as suggestions and does not loop on them", async () => {
+    const map: CoverageMap = [{ requirement: "PhD", supportable: false, expectedMarkers: ["phd"] }];
+    const reviser: Reviser = { revise: async (_j, _p, d) => d };
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE,
+      planner: planner(map), generator: generator(bulletDraft(["Cut latency 40%"])), reviser, verifier: verifier(),
+    });
+    expect(res.rounds).toBe(0);
+    expect(res.improvementSuggestions).toEqual([{ requirement: "PhD", reason: "unsupportable" }]);
+  });
+});
+
+function draftTextHas(d: GeneratedResume, needle: string): boolean {
+  return [d.summary, ...d.experiences.flatMap((e) => e.highlights.map((h) => h.text)), ...d.skills]
+    .join(" ").toLowerCase().includes(needle);
+}
