@@ -55,6 +55,7 @@ export const generateFitting = action({
     };
 
     // §16 bounded coverage loop: plan → generate → diff → revise → fixed point.
+    // Worst case 2 + 2×maxRounds LLM calls (default maxRounds=3 → up to 8); well within the Convex action limit.
     const loop = await runCoverageLoop({
       jobText: rawText,
       profile: canonical,
@@ -94,7 +95,9 @@ export const generateFitting = action({
     const deterministic = scoreDeterministic(scorable);
     const verdict = buildQualityVerdict(deterministic, verification);
 
-    // Legacy sub-scores retained for the existing UI.
+    // Legacy sub-scores retained for the existing UI. NOTE: these are the GENERATOR's
+    // self-report (not independently verified) — distinct from verdict.fit.coverage (the
+    // verifier's independent coverageScore) and loop.coverageMap (the planner's pre-prose map).
     const keywords = (gen.keywords ?? []).filter((k) => typeof k === "string" && k.trim());
     const reqs = (gen.requirements ?? []).filter((r) => r && typeof r.text === "string" && r.text.trim());
     const requirement = reqs.length
