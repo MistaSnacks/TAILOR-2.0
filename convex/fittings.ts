@@ -53,6 +53,25 @@ export const saveFitting = internalMutation({
         }),
       ),
     ),
+    coverageMap: v.optional(
+      v.array(
+        v.object({
+          requirement: v.string(),
+          supportable: v.boolean(),
+          evidenceRef: v.optional(v.string()),
+          expectedMarkers: v.array(v.string()),
+        }),
+      ),
+    ),
+    rounds: v.optional(v.number()),
+    improvementSuggestions: v.optional(
+      v.array(
+        v.object({
+          requirement: v.string(),
+          reason: v.union(v.literal("unsupportable"), v.literal("budget"), v.literal("gate-rejected")),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => ctx.db.insert("fittings", args),
 });
@@ -94,6 +113,9 @@ export const getFitting = query({
       fit: f.fit,
       gate: f.gate ?? null,
       bulletVerdicts: f.bulletVerdicts ?? [],
+      coverageMap: f.coverageMap ?? [],
+      rounds: f.rounds ?? 0,
+      improvementSuggestions: f.improvementSuggestions ?? [],
     };
   },
 });

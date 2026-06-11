@@ -106,5 +106,24 @@ export default defineSchema({
         }),
       ),
     ),
+    coverageMap: v.optional(
+      v.array(
+        v.object({
+          requirement: v.string(),
+          supportable: v.boolean(),
+          evidenceRef: v.optional(v.string()),
+          expectedMarkers: v.array(v.string()),
+        }),
+      ),
+    ),
+    rounds: v.optional(v.number()),
+    improvementSuggestions: v.optional(
+      v.array(
+        v.object({
+          requirement: v.string(),
+          reason: v.union(v.literal("unsupportable"), v.literal("budget"), v.literal("gate-rejected")),
+        }),
+      ),
+    ),
   }).index("by_job", ["jobId"]),
 });
