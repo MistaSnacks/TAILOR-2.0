@@ -20,11 +20,12 @@ export function getVerifier(): Verifier {
   return chosen === "anthropic" ? new ClaudeVerifier() : new GeminiVerifier();
 }
 
-// Planner is independent of the Generator — reuse the verifier's vendor rule.
+// Planner uses the Verifier's vendor-independence rule: cross-vendor when a second API key is available, else the generator's vendor.
 export function getPlanner(): Planner {
   const chosen = pickVerifierProvider(provider(), process.env);
   return chosen === "anthropic" ? new ClaudePlanner() : new GeminiPlanner();
 }
+
 // Reviser is a constrained re-generate — same vendor as the Generator.
 export function getReviser(): Reviser {
   return provider() === "anthropic" ? new ClaudeReviser() : new GeminiReviser();
