@@ -104,6 +104,8 @@ export async function runCoverageLoop(deps: LoopDeps): Promise<LoopResult> {
   for (;;) {
     const { gaps } = diffCoverage(coverageMap, draftText(accepted));
     const fitGaps = gaps.filter((g) => fitsWithinBudget(accepted, g));
+    // Budget-blocked gaps become suggestions. With today's room-at-cap stub this is stable across
+    // rounds; once §17's real swap lands (where fit can change per round), revisit this placement.
     addSuggestions(gaps.filter((g) => !fitsWithinBudget(accepted, g)).map((g) => g.requirement), "budget");
 
     const decision = nextLoopState({ gaps: fitGaps, prevGapCount, round: rounds, maxRounds });

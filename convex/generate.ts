@@ -12,10 +12,9 @@ const VALID = ["verbatim", "rephrase", "infer", "compose"];
 
 /**
  * Generate one Fitting for a pasted JD against the structured profile (§3, §5–§9).
- * Grounded generation + an independent cross-vendor verifier (§7) that adjudicates
- * the truthfulness/fidelity/consistency hard gates and grades coverage.
  * Runs the §16 bounded coverage loop (plan → generate → diff → targeted revise → fixed point)
- * with an independent cross-vendor verifier (§7) gating every round; genuine gaps are persisted
+ * with an independent cross-vendor verifier (§7) gating every round: a revise that trips a hard
+ * gate is reverted and its target becomes an improvement suggestion. Genuine gaps are persisted
  * as improvementSuggestions. Full §17 selection (density-greedy swap) is still a follow-on.
  */
 export const generateFitting = action({

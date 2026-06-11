@@ -4,6 +4,7 @@
 // (see docs/specs/2026-06-11-coverage-loop-design.md §10). No Convex/node imports.
 import type { GeneratedResume, CoveragePlanItem } from "../llm/types";
 
+// maxPerRole is reserved for the deferred density-greedy swap (§17); only maxBullets is enforced by the room-at-cap stub below.
 export const BUDGET = { maxBullets: 18, maxPerRole: 6 } as const;
 
 export function totalBullets(d: GeneratedResume): number {
