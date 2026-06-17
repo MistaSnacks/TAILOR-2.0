@@ -38,6 +38,20 @@ import { diffCoverage, draftText } from "./coverage";
 import { fitsWithinBudget } from "./select";
 import { hardGatesPass } from "./score";
 
+/**
+ * Turn a FAILING verification into concrete repair targets for the reviser:
+ * undefensible bullets (with the verifier's reason), fidelity issues, consistency issues.
+ * Returns [] for a passing report.
+ */
+export function gateRepairTargets(ver: VerificationReport): string[] {
+  const targets: string[] = [];
+  for (const b of ver.bulletVerdicts) {
+    if (!b.defensible) targets.push(b.reason ? `${b.text} — ${b.reason}` : `Undefensible: ${b.text}`);
+  }
+  targets.push(...ver.fidelityIssues, ...ver.consistencyIssues);
+  return targets;
+}
+
 export type SuggestionReason = "unsupportable" | "budget" | "gate-rejected";
 export interface ImprovementSuggestion {
   requirement: string;

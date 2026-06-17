@@ -1,6 +1,6 @@
 // convex/quality/loop.test.ts
 import { describe, it, expect } from "vitest";
-import { nextLoopState, runCoverageLoop } from "./loop";
+import { nextLoopState, runCoverageLoop, gateRepairTargets } from "./loop";
 import type {
   CoveragePlanItem,
   CanonicalProfile,
@@ -36,6 +36,41 @@ describe("nextLoopState", () => {
   it("first round (prevGapCount = Infinity) continues", () => {
     const d = nextLoopState({ gaps: [gap("a"), gap("b")], prevGapCount: Number.POSITIVE_INFINITY, round: 0, maxRounds: 3 });
     expect(d).toEqual({ kind: "continue", targets: ["a", "b"] });
+  });
+});
+
+describe("gateRepairTargets", () => {
+  it("collects undefensible bullets (with reason), fidelity and consistency issues", () => {
+    const ver: VerificationReport = {
+      bulletVerdicts: [
+        { text: "Led a $50M deal", defensible: false, reason: "no such metric in profile" },
+        { text: "Cut latency 40%", defensible: true },
+      ],
+      truthfulnessPass: false,
+      fidelityPass: false, fidelityIssues: ["title 'VP' not in profile"],
+      consistencyPass: false, consistencyIssues: ["dates overlap TD Bank / Possible Finance"],
+      coverageScore: 0, transferabilityScore: 0,
+    };
+    expect(gateRepairTargets(ver)).toEqual([
+      "Led a $50M deal — no such metric in profile",
+      "title 'VP' not in profile",
+      "dates overlap TD Bank / Possible Finance",
+    ]);
+  });
+
+  it("labels an undefensible bullet with no reason generically", () => {
+    const ver: VerificationReport = {
+      bulletVerdicts: [{ text: "Owned the roadmap", defensible: false }],
+      truthfulnessPass: false,
+      fidelityPass: true, fidelityIssues: [],
+      consistencyPass: true, consistencyIssues: [],
+      coverageScore: 0, transferabilityScore: 0,
+    };
+    expect(gateRepairTargets(ver)).toEqual(["Undefensible: Owned the roadmap"]);
+  });
+
+  it("returns [] when nothing is wrong", () => {
+    expect(gateRepairTargets(PASS)).toEqual([]);
   });
 });
 
