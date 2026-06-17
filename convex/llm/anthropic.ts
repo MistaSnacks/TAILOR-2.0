@@ -5,6 +5,7 @@ import {
   GENERATION_SYSTEM,
   PLANNER_SYSTEM,
   PROFILE_SYSTEM,
+  REPAIR_SYSTEM,
   REVISE_SYSTEM,
   VERIFICATION_SYSTEM,
   type CanonicalProfile,
@@ -76,10 +77,12 @@ export class ClaudeReviser implements Reviser {
     profile: CanonicalProfile,
     draft: GeneratedResume,
     targets: string[],
+    mode: "coverage" | "repair" = "coverage",
   ): Promise<GeneratedResume> {
-    return (await call(
-      REVISE_SYSTEM,
-      JSON.stringify({ jobDescription: jobText, profile, draft, targets }),
-    )) as GeneratedResume;
+    const system = mode === "repair" ? REPAIR_SYSTEM : REVISE_SYSTEM;
+    const payload = mode === "repair"
+      ? { jobDescription: jobText, profile, draft, issues: targets }
+      : { jobDescription: jobText, profile, draft, targets };
+    return (await call(system, JSON.stringify(payload))) as GeneratedResume;
   }
 }

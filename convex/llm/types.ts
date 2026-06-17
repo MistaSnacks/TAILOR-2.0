@@ -105,7 +105,11 @@ export const GENERATION_SYSTEM =
   "SUMMARY: 2–3 sentences, ~40–60 words: '[role] with [X]+ years in [domain]' + 1–2 quantified signature achievements " +
   "+ 2–3 of the JD's hard-skill keywords. No clichés (hardworking, team player, results-driven, detail-oriented, " +
   "passionate). No pronouns.\n" +
-  "SKILLS: 8–15 of the profile's skills most relevant to the job, matched to the JD's spelling (e.g. 'JavaScript' not 'JS').\n" +
+  "SKILLS: target 15–20 of the profile's skills most relevant to the job (cap ~22), but ONLY skills present in the " +
+  "profile — if it supports fewer, output fewer; NEVER pad with generic skills (Git, MS Office, 'communication') to " +
+  "hit the count. Put the 5 most JD-relevant first. Prefer HARD skills, tools, and methodologies; include a soft " +
+  "skill only if the JD explicitly names it. Match the JD's spelling (e.g. 'JavaScript' not 'JS'); for acronyms give " +
+  "both forms (e.g. 'AWS (Amazon Web Services)'). Separate with commas — never pipes/vertical bars.\n" +
   "REQUIREMENTS: the job's key requirements with covered=true/false based on the profile. KEYWORDS: key ATS keywords from the job.\n" +
   "Return ONLY JSON: {\"summary\":string,\"experiences\":[{\"company\",\"position\",\"startDate\",\"endDate\"," +
   "\"highlights\":[{\"text\",\"type\",\"relationship\"}]}],\"skills\":[string],\"requirements\":[{\"text\",\"covered\"}],\"keywords\":[string]}.";
@@ -170,13 +174,14 @@ export interface Planner {
   plan(jobText: string, profile: CanonicalProfile): Promise<CoverageMap>;
 }
 
-/** Constrained re-generate: surface evidence for specific gaps, change nothing else (§16 revise step). */
+/** Constrained re-generate. mode "coverage": surface evidence for gap targets. mode "repair": fix gate-violation targets. Changes nothing else. */
 export interface Reviser {
   revise(
     jobText: string,
     profile: CanonicalProfile,
     draft: GeneratedResume,
     targets: string[],
+    mode?: "coverage" | "repair",
   ): Promise<GeneratedResume>;
 }
 
@@ -198,4 +203,16 @@ export const REVISE_SYSTEM =
   "Never fabricate to close a gap; if a target cannot be covered defensibly, leave the draft unchanged for it. " +
   "Obey the same grounding and bullet-quality rules as generation. Return the SAME résumé JSON shape as the draft: " +
   '{"summary":string,"experiences":[{"company","position","startDate","endDate","highlights":[{"text","type","relationship"}]}],"skills":[string],"requirements":[{"text","covered"}],"keywords":[string]}.';
+
+export const REPAIR_SYSTEM =
+  "You are TAILOR's résumé REPAIRER. Input: a job description, the candidate's canonical PROFILE, an existing " +
+  "résumé DRAFT that FAILED verification, and a list of ISSUES (gate violations) to fix. Fix ONLY those issues, using " +
+  "ONLY facts in the profile. Typical fixes: an OVERCLAIM in the summary (e.g. claiming total years in a specific " +
+  "domain when only some roles are in that domain — state the honest split, e.g. '8+ years in operations & fraud, " +
+  "~3 in credit/FinTech'); a metric/title/employer/date that does not match the profile; or an internal contradiction. " +
+  "Make the SMALLEST change that resolves each issue; keep every other bullet, the employers, positions, and dates " +
+  "exactly as in the draft. NEVER fabricate to satisfy an issue. Obey the same grounding and bullet-quality rules as " +
+  "generation. Return the SAME résumé JSON shape as the draft: " +
+  '{"summary":string,"experiences":[{"company","position","startDate","endDate","highlights":[{"text","type","relationship"}]}],"skills":[string],"requirements":[{"text","covered"}],"keywords":[string]}.';
+
 
