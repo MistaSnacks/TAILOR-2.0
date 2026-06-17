@@ -53,8 +53,8 @@ export const generateFitting = action({
       })),
     };
 
-    // §16 bounded coverage loop: plan → generate → diff → revise → fixed point.
-    // Worst case 2 + 2×maxRounds LLM calls (default maxRounds=3 → up to 8); well within the Convex action limit.
+    // §16 bounded coverage loop: plan → generate → [gate-repair]* → diff → revise → fixed point.
+    // Worst case 3 + 2×maxRepairs + 2×maxRounds LLM calls (defaults 2/3 → up to 13); well within the Convex action limit.
     const loop = await runCoverageLoop({
       jobText: rawText,
       profile: canonical,
