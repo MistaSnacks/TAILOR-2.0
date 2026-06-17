@@ -44,6 +44,23 @@ export default function FittingRoom() {
     </section>
   );
 
+  const EducationBlock = f.education.length > 0 && (
+    <section className="paper-sec">
+      <h3>Education</h3>
+      {f.education.map((ed, i) => (
+        <div className="paper-xp" key={i}>
+          <div className="paper-xp-head">
+            <span className="paper-co">{ed.institution}</span>
+            <span className="paper-dates">{dateRange(ed.startDate, ed.endDate)}</span>
+          </div>
+          {(ed.studyType || ed.area) && (
+            <div className="paper-role">{[ed.studyType, ed.area].filter(Boolean).join(", ")}</div>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+
   const ExperienceBlock = (
     <section className="paper-sec">
       <h3>Experience</h3>
@@ -118,10 +135,12 @@ export default function FittingRoom() {
           <>
             {SkillsBlock}
             {ExperienceBlock}
+            {EducationBlock}
           </>
         ) : (
           <>
             {ExperienceBlock}
+            {EducationBlock}
             {SkillsBlock}
           </>
         )}

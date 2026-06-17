@@ -16,6 +16,14 @@ const expV = v.object({
   ),
 });
 
+const eduV = v.object({
+  institution: v.string(),
+  area: v.optional(v.string()),
+  studyType: v.optional(v.string()),
+  startDate: v.optional(v.string()),
+  endDate: v.optional(v.string()),
+});
+
 export const saveFitting = internalMutation({
   args: {
     jobId: v.id("jobs"),
@@ -25,6 +33,7 @@ export const saveFitting = internalMutation({
     skills: v.array(v.string()),
     keywords: v.array(v.string()),
     requirements: v.array(v.object({ text: v.string(), covered: v.boolean() })),
+    education: v.optional(v.array(eduV)),
     fit: v.object({
       overall: v.number(),
       keyword: v.number(),
@@ -110,6 +119,7 @@ export const getFitting = query({
       skills: f.skills,
       keywords: f.keywords,
       requirements: f.requirements,
+      education: f.education ?? [],
       fit: f.fit,
       gate: f.gate ?? null,
       bulletVerdicts: f.bulletVerdicts ?? [],

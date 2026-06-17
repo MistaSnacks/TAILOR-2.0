@@ -78,6 +78,19 @@ export default defineSchema({
     skills: v.array(v.string()),
     keywords: v.array(v.string()),
     requirements: v.array(v.object({ text: v.string(), covered: v.boolean() })),
+    // Factual, sourced verbatim from the Form — never LLM-tailored. Optional for
+    // backwards-compat with fittings generated before education was plumbed through.
+    education: v.optional(
+      v.array(
+        v.object({
+          institution: v.string(),
+          area: v.optional(v.string()),
+          studyType: v.optional(v.string()),
+          startDate: v.optional(v.string()),
+          endDate: v.optional(v.string()),
+        }),
+      ),
+    ),
     fit: v.object({
       overall: v.number(),
       keyword: v.number(),
