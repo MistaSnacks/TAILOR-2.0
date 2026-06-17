@@ -1,0 +1,55 @@
+{
+  "ranAt": "2026-06-17T00-00-00",
+  "aggregate": {
+    "n": 3,
+    "errors": 2,
+    "scored": 1,
+    "gatePassRate": 1,
+    "meanCoverageHitRate": 0.8,
+    "meanJdEchoRate": 0,
+    "meanLongestEcho": 4,
+    "meanRubricScore": 90,
+    "meanRounds": 1
+  },
+  "perFixture": [
+    {
+      "id": "8c0fa49e-329c-4b4c-a5e8-159162d5f281",
+      "source": "real",
+      "status": "ready",
+      "gatePass": true,
+      "coverageHitRate": 0.8,
+      "jdEchoRate": 0,
+      "longestEcho": 4,
+      "rubricScore": 90,
+      "longBulletRate": 0,
+      "skillsCount": 22,
+      "rounds": 1
+    },
+    {
+      "id": "1ad6d33b-36f2-4e92-9323-73047a1f27b3",
+      "source": "real",
+      "status": "error",
+      "gatePass": false,
+      "coverageHitRate": 0,
+      "jdEchoRate": 0,
+      "longestEcho": 0,
+      "rubricScore": 0,
+      "longBulletRate": 0,
+      "skillsCount": 0,
+      "rounds": 0
+    },
+    {
+      "id": "2f9dfdb1-c7ea-4dbb-b46b-c354032102b3",
+      "source": "real",
+      "status": "error",
+      "gatePass": false,
+      "coverageHitRate": 0,
+      "jdEchoRate": 0,
+      "longestEcho": 0,
+      "rubricScore": 0,
+      "longBulletRate": 0,
+      "skillsCount": 0,
+      "rounds": 0
+    }
+  ]
+}
