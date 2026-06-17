@@ -158,6 +158,48 @@ describe("runCoverageLoop", () => {
     expect(res.improvementSuggestions).toEqual([]);
     expect(res.draft).toEqual(base);
   });
+
+  it("repairs a gate-failing base draft and proceeds (status ready)", async () => {
+    const failing = bulletDraft(["Led a fabricated $50M deal"]);
+    const clean = bulletDraft(["Led a major enterprise deal"]);
+    // FAIL only while the draft still contains the sentinel; supply a repair target.
+    const repairVerifier: Verifier = {
+      verify: async (_j, _p, r) =>
+        JSON.stringify(r).includes("fabricated")
+          ? { ...FAIL, bulletVerdicts: [{ text: "Led a fabricated $50M deal", defensible: false, reason: "metric not in profile" }] }
+          : PASS,
+    };
+    const reviser: Reviser = { revise: async (_j, _p, _d, _t, mode) => (mode === "repair" ? clean : failing) };
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE,
+      planner: planner([]), generator: generator(failing), reviser, verifier: repairVerifier,
+    });
+    expect(res.status).toBe("ready");
+    expect(draftTextHas(res.draft, "fabricated")).toBe(false);
+  });
+
+  it("marks not-ready when the base draft cannot be repaired within budget", async () => {
+    const failing = bulletDraft(["Led a fabricated $50M deal"]);
+    const stillBad: Verifier = {
+      verify: async () => ({ ...FAIL, bulletVerdicts: [{ text: "Led a fabricated $50M deal", defensible: false, reason: "metric not in profile" }] }),
+    };
+    const reviser: Reviser = { revise: async (_j, _p, d) => d }; // never fixes the issue
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE, maxRepairs: 2,
+      planner: planner([]), generator: generator(failing), reviser, verifier: stillBad,
+    });
+    expect(res.status).toBe("not-ready");
+    expect(res.rounds).toBe(0);
+  });
+
+  it("a passing base draft is status ready", async () => {
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE,
+      planner: planner([]), generator: generator(bulletDraft(["Cut latency 40%"])),
+      reviser: { revise: async (_j, _p, d) => d }, verifier: verifier(),
+    });
+    expect(res.status).toBe("ready");
+  });
 });
 
 function draftTextHas(d: GeneratedResume, needle: string): boolean {

@@ -65,6 +65,7 @@ export interface LoopDeps {
   reviser: Reviser;
   verifier: Verifier;
   maxRounds?: number; // default 3
+  maxRepairs?: number; // default 2 — bounded gate-repair attempts on a failing base draft
 }
 export interface LoopResult {
   draft: GeneratedResume; // the ACCEPTED (gate-passing) final draft
@@ -72,6 +73,7 @@ export interface LoopResult {
   coverageMap: CoverageMap;
   rounds: number; // successful revise rounds applied
   improvementSuggestions: ImprovementSuggestion[];
+  status: "ready" | "not-ready"; // "not-ready": failed the gate and could not be repaired within budget
 }
 
 /**
@@ -107,9 +109,27 @@ export async function runCoverageLoop(deps: LoopDeps): Promise<LoopResult> {
   // Unsupportable requirements are gaps from the start (§3 — gaps are first-class output).
   addSuggestions(coverageMap.filter((i) => !i.supportable).map((i) => i.requirement), "unsupportable");
 
-  // Invariant: never revise an already-failing draft — surface its gate failure as today.
+  // Gate-repair (§A3): a failing base draft is revised TOWARD the gate, not shipped as-is.
+  // Bounded by maxRepairs; each attempt targets the current blocking reasons.
+  const maxRepairs = deps.maxRepairs ?? 2;
+  let repairs = 0;
+  while (!hardGatesPass(acceptedVer) && repairs < maxRepairs) {
+    const repairTargets = gateRepairTargets(acceptedVer);
+    if (repairTargets.length === 0) break; // gate failed but no actionable target
+    let repaired: GeneratedResume;
+    try {
+      repaired = await reviser.revise(jobText, profile, accepted, repairTargets, "repair");
+    } catch {
+      break; // malformed/throwing repair → keep the last draft, fall through to not-ready
+    }
+    accepted = repaired;
+    acceptedVer = await verifier.verify(jobText, profile, repaired);
+    repairs += 1;
+  }
+
+  // Unrepairable within budget → not-ready. Never display a vanity score on this draft (Phase B banner).
   if (!hardGatesPass(acceptedVer)) {
-    return { draft: accepted, verification: acceptedVer, coverageMap, rounds: 0, improvementSuggestions: suggestions };
+    return { draft: accepted, verification: acceptedVer, coverageMap, rounds: 0, improvementSuggestions: suggestions, status: "not-ready" };
   }
 
   // 3. LOOP.
@@ -144,5 +164,5 @@ export async function runCoverageLoop(deps: LoopDeps): Promise<LoopResult> {
     }
   }
 
-  return { draft: accepted, verification: acceptedVer, coverageMap, rounds, improvementSuggestions: suggestions };
+  return { draft: accepted, verification: acceptedVer, coverageMap, rounds, improvementSuggestions: suggestions, status: "ready" };
 }
