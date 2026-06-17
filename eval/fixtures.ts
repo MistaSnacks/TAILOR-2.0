@@ -34,7 +34,7 @@ export async function loadFixtures(limit: number): Promise<EvalFixture[]> {
     const users = await db.query(
       `select u.id, u.email, u.is_legacy from users u
        where exists (select 1 from canonical_experiences ce where ce.user_id = u.id)
-         and exists (select 1 from jobs j where j.user_id = u.id and j.description is not null)
+         and exists (select 1 from jobs j where j.user_id = u.id and char_length(j.description) >= 200)
        order by u.created_at desc limit $1`,
       [limit],
     );
@@ -95,7 +95,7 @@ export async function loadFixtures(limit: number): Promise<EvalFixture[]> {
       }));
 
       const job = await db.query(
-        `select description from jobs where user_id = $1 and description is not null
+        `select description from jobs where user_id = $1 and char_length(description) >= 200
          order by created_at desc limit 1`,
         [u.id],
       );
