@@ -103,6 +103,9 @@ export const GENERATION_SYSTEM =
   "JD-aligned wording), 'infer' (a broader competency a bullet genuinely entails — set relationship), or 'compose' " +
   "(synthesized from several of that job's bullets — set relationship).\n" +
   "SUMMARY: 2–3 sentences, ~40–60 words: '[role] with [X]+ years in [domain]' + 1–2 quantified signature achievements " +
+  "— but SUMMARY HONESTY: do NOT claim domain-specific tenure beyond what the in-domain roles support. Total career " +
+  "years ≠ years in the JD's domain; if only some roles are in that domain, state the honest split (e.g. '8+ years in " +
+  "operations & fraud, 3+ in credit/FinTech'), never '8+ years in [domain]' when most years are elsewhere. " +
   "+ 2–3 of the JD's hard-skill keywords. No clichés (hardworking, team player, results-driven, detail-oriented, " +
   "passionate). No pronouns.\n" +
   "SKILLS: target 15–20 of the profile's skills most relevant to the job (cap ~22), but ONLY skills present in the " +
@@ -147,7 +150,10 @@ export const VERIFICATION_SYSTEM =
   "profile ONLY. Be skeptical — your job is to catch fabrication, not to praise.\n" +
   "HARD GATES:\n" +
   "(1) TRUTHFULNESS — for EACH résumé highlight, decide if it is defensible: directly stated in the profile OR a " +
-  "defensible entailment of profile evidence (e.g. 'used Tableau' entails 'data visualization'). A highlight that " +
+  "defensible entailment of profile evidence (e.g. 'used Tableau' entails 'data visualization'). Accept ROLE- and " +
+  "ACTIVITY-based entailments at the same MODERATE standard: a customer-facing role entails relationship management; " +
+  "delivering a training curriculum entails presenting/coaching; reporting to leadership entails stakeholder " +
+  "communication. BUT entailment does NOT reach genuinely net-new domains: no sales/account-executive/quota history means 'sales experience' is NOT defensible. Defensible = a reasonable recruiter accepts it AND the candidate could defend it in an interview. A highlight that " +
   "adds an employer, title, metric, or skill NOT supported by the profile is NOT defensible. Return a verdict per bullet.\n" +
   "(2) FIDELITY — every company, position, date, and metric must match the profile. List any mismatch.\n" +
   "(3) CONSISTENCY — no internal contradictions (overlapping dates, conflicting claims) and nothing that contradicts " +
@@ -189,7 +195,13 @@ export const PLANNER_SYSTEM =
   "You are TAILOR's coverage PLANNER. You map a job description's requirements to the candidate's canonical " +
   "PROFILE BEFORE any résumé exists. You do NOT write a résumé. For EACH distinct requirement in the JD decide: " +
   "is it defensibly supportable from the profile — directly stated OR a defensible entailment of profile evidence " +
-  "(e.g. 'used Tableau' entails 'data visualization')? If supportable, name the evidence (which experience or skill) " +
+  "(e.g. 'used Tableau' entails 'data visualization')? Treat ROLE- and ACTIVITY-based entailments as supportable when a " +
+  "reasonable recruiter would accept them and the candidate could defend them in an interview: a customer-facing role " +
+  "(escalations, disputes, member support, account management) entails 'maintains customer/client relationships'; " +
+  "building and delivering a training curriculum entails 'delivers presentations / coaching'; presenting findings or " +
+  "reports to leadership entails 'stakeholder communication'. Do NOT mark such items unsupportable merely because the " +
+  "exact JD phrase is absent. STILL mark genuinely net-new domains supportable:false: if the profile shows no " +
+  "sales/account-executive/quota history, 'sales experience' is NOT supportable. If supportable, name the evidence (which experience or skill) " +
   "and list the keyword/phrase VARIANTS that would prove it is covered if they appear in the résumé (e.g. " +
   "['Kubernetes','K8s','container orchestration']). Mark genuinely unsupported requirements supportable:false — " +
   "do NOT stretch. Return ONLY JSON: " +
