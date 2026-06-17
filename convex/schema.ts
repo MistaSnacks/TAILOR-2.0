@@ -91,6 +91,10 @@ export default defineSchema({
         }),
       ),
     ),
+    // Stage-1 outcome: "not-ready" means the draft failed the gate and could not be
+    // repaired within budget — Phase B shows a banner instead of a score. Optional for
+    // backwards-compat with fittings saved before gate-repair.
+    status: v.optional(v.union(v.literal("ready"), v.literal("not-ready"))),
     fit: v.object({
       overall: v.number(),
       keyword: v.number(),

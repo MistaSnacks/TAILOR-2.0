@@ -120,6 +120,7 @@ export const generateFitting = action({
       requirements: reqs.map((r) => ({ text: r.text, covered: !!r.covered })),
       // Education is factual: carry it verbatim from the Form, never the LLM draft.
       education: canonical.education,
+      status: loop.status,
       fit: {
         overall: verdict.fit.overall,
         keyword,

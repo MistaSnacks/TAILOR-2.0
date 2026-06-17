@@ -34,6 +34,7 @@ export const saveFitting = internalMutation({
     keywords: v.array(v.string()),
     requirements: v.array(v.object({ text: v.string(), covered: v.boolean() })),
     education: v.optional(v.array(eduV)),
+    status: v.optional(v.union(v.literal("ready"), v.literal("not-ready"))),
     fit: v.object({
       overall: v.number(),
       keyword: v.number(),
@@ -120,6 +121,7 @@ export const getFitting = query({
       keywords: f.keywords,
       requirements: f.requirements,
       education: f.education ?? [],
+      status: f.status ?? "ready",
       fit: f.fit,
       gate: f.gate ?? null,
       bulletVerdicts: f.bulletVerdicts ?? [],
