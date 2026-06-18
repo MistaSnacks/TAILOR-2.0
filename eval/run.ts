@@ -23,6 +23,7 @@ async function main() {
 
   const rows: FixtureRow[] = [];
   for (const [i, fx] of fixtures.entries()) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 5_000)); // spread LLM load across fixtures
     process.stdout.write(`  [${i + 1}/${fixtures.length}] ${fx.id} (${fx.source})... `);
     const row = await scoreFixture(fx);
     rows.push(row);
