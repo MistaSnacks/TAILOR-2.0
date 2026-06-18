@@ -137,7 +137,16 @@ export const generateFitting = action({
         consistency: verdict.gates.consistency,
         blockingReasons: verdict.blockingReasons,
       },
-      bulletVerdicts: verification.bulletVerdicts,
+      // Sanitize verifier output before persisting: the LLM may emit null/non-string for the
+      // optional evidence/reason fields, which the validator (optional string, not null) rejects.
+      bulletVerdicts: (verification.bulletVerdicts ?? [])
+        .filter((b) => b && typeof b.text === "string")
+        .map((b) => ({
+          text: b.text,
+          defensible: !!b.defensible,
+          ...(typeof b.evidence === "string" && b.evidence.trim() ? { evidence: b.evidence } : {}),
+          ...(typeof b.reason === "string" && b.reason.trim() ? { reason: b.reason } : {}),
+        })),
       coverageMap: loop.coverageMap,
       rounds: loop.rounds,
       improvementSuggestions: loop.improvementSuggestions,

@@ -108,6 +108,24 @@ describe("runCoverageLoop", () => {
     expect(res.improvementSuggestions).toEqual([]);
   });
 
+  it("treats a JD-term-anchored requirement as a gap when only a paraphrase is present, and surfaces the literal term", async () => {
+    // Contract behind the soft-skill ATS fix: a marker is the JD's OWN literal term ("analytical"),
+    // not a corpus paraphrase. A draft that shows the evidence ("analyzed patterns") but not the JD
+    // term must still be a gap, and the revise surfaces the literal term. Agnostic tokens only.
+    const softReq: CoverageMap = [{ requirement: "Strong analytical skills", supportable: true, expectedMarkers: ["analytical"] }];
+    const base = bulletDraft(["Analyzed transaction patterns to flag anomalies"]); // paraphrase present, JD term absent
+    const reviser: Reviser = {
+      revise: async (_j, _p, d) => bulletDraft([...d.experiences[0].highlights.map((h) => h.text), "Applied analytical judgment to assess case risk"]),
+    };
+    const res = await runCoverageLoop({
+      jobText: "jd", profile: PROFILE,
+      planner: planner(softReq), generator: generator(base), reviser, verifier: verifier(),
+    });
+    expect(res.rounds).toBe(1); // the paraphrase-only draft was correctly seen as uncovered
+    expect(draftTextHas(res.draft, "analytical")).toBe(true);
+    expect(res.improvementSuggestions).toEqual([]);
+  });
+
   it("reverts a revise that trips the gate and records a gate-rejected suggestion", async () => {
     const base = bulletDraft(["Cut latency 40%"]);
     const reviser: Reviser = { revise: async () => bulletDraft(["Cut latency 40%", "Led a fabricated $50M deal"]) };

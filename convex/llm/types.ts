@@ -102,6 +102,16 @@ export const GENERATION_SYSTEM =
   "Participated in'. Each highlight has a type: 'verbatim' (restates a profile bullet), 'rephrase' (same fact, " +
   "JD-aligned wording), 'infer' (a broader competency a bullet genuinely entails — set relationship), or 'compose' " +
   "(synthesized from several of that job's bullets — set relationship).\n" +
+  "JD VOCABULARY (land the keyword NATURALLY, in the candidate's voice): when the profile DEFENSIBLY supports a JD " +
+  "requirement or skill, make its keyword appear — but the résumé must sound like the CANDIDATE, never like the JD. " +
+  "Best home for a skill/competency noun keyword (incl. defensibly-entailed SOFT ones: analytical, communication, " +
+  "problem-solving) is the SKILLS list (the exact term, 1 word — that satisfies the scanner) AND a bullet that " +
+  "DEMONSTRATES it with a natural past-tense verb drawn from real work (analyzed, communicated, investigated, " +
+  "resolved) + a concrete outcome. Do NOT paste the JD's phrases, clauses, adjectives, or superlatives ('excellent', " +
+  "'strong', 'proven', 'ability to', 'clearly articulate') into a bullet — a recruiter must not recognize JD wording. " +
+  "Prefer the candidate's OWN terminology from the corpus over JD jargon; if covering a term would require importing " +
+  "words the corpus does not actually use (jargon the candidate could not own in an interview), leave it out — an " +
+  "honest gap, not something to force. Never fabricate or keyword-stuff.\n" +
   "SUMMARY: 2–3 sentences, ~40–60 words: '[role] with [X]+ years in [domain]' + 1–2 quantified signature achievements " +
   "— but SUMMARY HONESTY: do NOT claim domain-specific tenure beyond what the in-domain roles support. Total career " +
   "years ≠ years in the JD's domain; if only some roles are in that domain, state the honest split (e.g. '8+ years in " +
@@ -109,9 +119,11 @@ export const GENERATION_SYSTEM =
   "+ 2–3 of the JD's hard-skill keywords. No clichés (hardworking, team player, results-driven, detail-oriented, " +
   "passionate). No pronouns.\n" +
   "SKILLS: target 15–20 of the profile's skills most relevant to the job (cap ~22), but ONLY skills present in the " +
-  "profile — if it supports fewer, output fewer; NEVER pad with generic skills (Git, MS Office, 'communication') to " +
-  "hit the count. Put the 5 most JD-relevant first. Prefer HARD skills, tools, and methodologies; include a soft " +
-  "skill only if the JD explicitly names it. Match the JD's spelling (e.g. 'JavaScript' not 'JS'); for acronyms give " +
+  "profile — if it supports fewer, output fewer; NEVER pad with generic skills (Git, MS Office, or a soft skill the JD " +
+  "never names) to hit the count. Put the 5 most JD-relevant first. Prefer HARD skills, tools, and methodologies; include a " +
+  "JD-named soft skill (e.g. 'analytical', 'communication', 'problem-solving') WHEN the profile defensibly supports it — " +
+  "and also demonstrate that soft skill in a bullet/summary; never list a soft skill the JD does not name or the " +
+  "profile cannot defend. Match the JD's spelling (e.g. 'JavaScript' not 'JS'); for acronyms give " +
   "both forms (e.g. 'AWS (Amazon Web Services)'). Separate with commas — never pipes/vertical bars.\n" +
   "REQUIREMENTS: the job's key requirements with covered=true/false based on the profile. KEYWORDS: key ATS keywords from the job.\n" +
   "Return ONLY JSON: {\"summary\":string,\"experiences\":[{\"company\",\"position\",\"startDate\",\"endDate\"," +
@@ -171,7 +183,12 @@ export interface CoveragePlanItem {
   requirement: string;        // a single JD requirement
   supportable: boolean;       // can the corpus defensibly cover it (direct or entailment)?
   evidenceRef?: string;       // which experience/skill entails it (human-readable)
-  expectedMarkers: string[];  // keyword/phrase variants expected in the draft if covered
+  // The JD's OWN literal scannable term(s) for this requirement — the words an external ATS counts
+  // (e.g. "analytical", "communication", "problem-solving", "financial crimes"). When present, coverage
+  // is keyed on these: a corpus-side paraphrase alone does NOT earn external credit. Optional for
+  // backward-compat with maps produced before this field existed (then expectedMarkers is used).
+  atsTerms?: string[];
+  expectedMarkers: string[];  // broader evidence/variant phrases proving the candidate has the substance
 }
 export type CoverageMap = CoveragePlanItem[];
 
@@ -202,18 +219,39 @@ export const PLANNER_SYSTEM =
   "reports to leadership entails 'stakeholder communication'. Do NOT mark such items unsupportable merely because the " +
   "exact JD phrase is absent. STILL mark genuinely net-new domains supportable:false: if the profile shows no " +
   "sales/account-executive/quota history, 'sales experience' is NOT supportable. If supportable, name the evidence (which experience or skill) " +
-  "and list the keyword/phrase VARIANTS that would prove it is covered if they appear in the résumé (e.g. " +
-  "['Kubernetes','K8s','container orchestration']). Mark genuinely unsupported requirements supportable:false — " +
-  "do NOT stretch. Return ONLY JSON: " +
-  '{"coverage":[{"requirement":string,"supportable":boolean,"evidenceRef":string,"expectedMarkers":[string]}]}.';
+  "and provide TWO marker fields. atsTerms = the JD's literal scannable keyword(s) for this ONE requirement, lowercased. " +
+  "List 1–3 ALTERNATIVE phrasings of the SAME concept (synonyms or word-forms): the requirement counts as covered when " +
+  "ANY ONE of them appears, and matching is stem-tolerant (so 'communication' also matches 'communicated'). Pick the " +
+  "shortest scannable form (prefer 'analytical' over 'strong analytical skills'). CRITICAL: every atsTerm in one item " +
+  "must mean the SAME thing — NEVER list a broader, adjacent, or component term as an alternative (e.g. for 'creatively " +
+  "solve problems' use ['problem-solving','solve problems'], NOT 'patterns' or 'data'; a stray easy term would falsely " +
+  "mark the requirement covered). If a JD line bundles two DISTINCT skills, emit TWO separate coverage items, each with " +
+  "its own atsTerms. Each atsTerm must be a keyword the candidate can AUTHENTICALLY OWN from their corpus — their own " +
+  "vocabulary or an unmistakable equivalent. Do NOT list JD jargon the corpus does not actually evidence (a niche " +
+  "tool/term the candidate never used, e.g. 'Card Rails' when the corpus only shows ACH/Visa chargebacks): that is a " +
+  "gap, not an atsTerm — listing it would force unnatural JD wording the candidate cannot defend. " +
+  "expectedMarkers = broader VARIANTS / evidence phrases proving the substance (e.g. ['K8s','container orchestration'," +
+  "'root cause analysis']). A corpus-side paraphrase in expectedMarkers alone does NOT earn ATS credit. Populate " +
+  "atsTerms for SOFT/behavioral requirements too (analytical, written/verbal communication, problem-solving, " +
+  "articulate): mark them supportable when role-entailed, with the JD's literal term in atsTerms so the résumé is " +
+  "driven to surface it. Mark genuinely unsupported requirements supportable:false — do NOT stretch. Return ONLY JSON: " +
+  '{"coverage":[{"requirement":string,"supportable":boolean,"evidenceRef":string,"atsTerms":[string],"expectedMarkers":[string]}]}.';
 
 export const REVISE_SYSTEM =
   "You are TAILOR's résumé REVISER. You are given a job description, the candidate's canonical PROFILE, an existing " +
   "résumé DRAFT, and a short list of TARGET requirements the draft failed to surface — each of which the profile " +
-  "CAN defensibly support. Add or strengthen evidence for ONLY those targets, drawn ONLY from the profile. Change " +
+  "CAN defensibly support. Add or strengthen evidence for ONLY those targets, drawn ONLY from the profile. Surface each " +
+  "target in the CANDIDATE'S OWN VOICE, never the JD's. Land the keyword the natural way: for a skill/competency noun " +
+  "(e.g. analytical, communication, problem-solving, financial crimes) add the exact term to the SKILLS list AND " +
+  "demonstrate it in the most relevant existing bullet using a natural past-tense verb from real work (analyzed, " +
+  "communicated, investigated, resolved) + a concrete outcome. Do NOT paste the JD's phrase, clause, adjectives, or " +
+  "superlatives ('excellent', 'strong', 'proven', 'ability to', 'clearly articulate') into a bullet — a recruiter must " +
+  "not recognize JD wording. Keep every bullet 15–25 words, ≤2 lines, ONE idea; if surfacing a term would bloat a " +
+  "bullet past that, put the keyword in the SKILLS list or a better-fitting bullet rather than cram it. Use the " +
+  "candidate's own corpus terminology, not JD jargon; if a target can only be 'covered' by importing wording the " +
+  "corpus does not use, leave the draft unchanged for it (an honest gap). Change " +
   "NOTHING else: keep every other bullet, the summary, employers, positions, and dates exactly as in the draft. " +
-  "Never fabricate to close a gap; if a target cannot be covered defensibly, leave the draft unchanged for it. " +
-  "Obey the same grounding and bullet-quality rules as generation. Return the SAME résumé JSON shape as the draft: " +
+  "Never fabricate to close a gap. Obey the same grounding and bullet-quality rules as generation. Return the SAME résumé JSON shape as the draft: " +
   '{"summary":string,"experiences":[{"company","position","startDate","endDate","highlights":[{"text","type","relationship"}]}],"skills":[string],"requirements":[{"text","covered"}],"keywords":[string]}.';
 
 export const REPAIR_SYSTEM =

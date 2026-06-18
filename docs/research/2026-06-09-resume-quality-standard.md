@@ -76,14 +76,21 @@ Sources: [Quartz Google formula], [Harvard action verbs + bullet template], [Res
 
 ## 6. Skills
 
-- **8–15 total** (cap ~20 for grouped tech stacks); the **first 5 must match the JD**.
-- **Categorize when ≥8** into 2–4 named groups; most-relevant category first; plain text, comma/pipe-separated. **No tables, bars, icons** (ATS-breaking).
-- **~70/30 hard-to-soft.** Only list a soft skill if the JD explicitly names it; methodologies (Agile, Scrum, Lean Six Sigma, OKRs) count as hard.
-- Top-5 hard skills should **also appear woven into experience bullets**.
-- Mirror JD spelling exactly ("JavaScript" not "JS", "PostgreSQL" not "Postgres"). Drop universal assumptions (Git, MS Office) unless named.
-- **Tech stacks:** group by Languages / Frameworks / Databases / Cloud-Infra / Practices; max 5–7 languages.
+> **Revised 2026-06-13**, **corroborated & corrected 2026-06-14** via a deeper firecrawl + exa sweep that reached the underlying primary studies and ~8 university career-center pages. Count and core structure held; the numeric hard/soft ratio and the fixed category scheme were dropped; one earlier number was **corrected** and one separator rule **changed**. Changes flagged inline.
 
-Sources: [ResumeGeni skills], [Resume Optimizer Pro hard-vs-soft], [Indeed hard-vs-soft], [Jobscan keywords], [Formation SWE resume], [MatchResume 2026].
+- **15–20 total** (cap ~22 for grouped tech stacks); the **first 5 must match the JD**. **⚖️ Product decision (Camren, 2026-06-14) — deliberately raised from the research-implied 8–15** because users want to see fuller, more complete résumés; a richer skills inventory reads as more substantive. This **knowingly diverges from the descriptive data** (Zety 2024, 93k résumés: avg **9.65** / median **8.81**; Kickresume 2026, 2.1M CVs: median **5** / avg **9** — real-world central tendency ~**5–10**). We accept that tradeoff for perceived completeness. *(Note: an earlier draft cited a "study optimum 13" — that was a secondary-source distortion; the primary figures above supersede it.)*
+- **🔒 Guardrail (non-negotiable, overrides the count):** 15–20 is a **target filled only with corpus-defensible skills, NOT a floor to pad toward.** If the profile genuinely supports fewer, the résumé shows fewer — the truthfulness/fidelity hard gates (`2026-06-09-resume-quality.md` §6) win over hitting the number. Never invent or pad generic skills (Git, MS Office, "communication") to reach 15. Watch the high end for keyword-stuffing penalties (scale.jobs) and impact dilution.
+- **Within the band, scale by seniority** (data-backed: Zety directors avg **19** vs developers avg **9**). Mid-to-senior tech ICP → fill the full **15–20** where defensible; thinner/early corpora → expect the low end or below (**~10–15**, and fewer if that's all the corpus supports). Derive from the profile, never pad.
+- **Hard-dominant** — the section is primarily hard skills + tools + methodologies (Agile, Scrum, Lean Six Sigma, OKRs count as hard). Include a soft skill **only if the JD explicitly names it**; otherwise demonstrate soft skills in experience bullets. *(Replaces the old "~70/30" rule — every 70/30 claim was refuted 0-3.)* **Strong primary backing:** UPenn ("only objective, measurable skills… softer skills should be illustrated, not stated, through experience"), Auburn Engineering ("Don't list soft skills in this area — soft skills need to be expressed in your bullet points"), UNC CS, UCSF. Pitt data: hard skills match at ~60% vs ~28% for soft — another reason the section leans hard.
+- **Categorize when ≥8** into 2–4 groups; most-relevant group first. **Derive group names from the candidate's actual skills + the JD**, not a fixed template (fixed scheme refuted 0-3). Heavily confirmed by primary tech career centers: Virginia Tech 2026 (Programming / Tools / Cloud / Cyber / IT), UVA Engineering (Languages / Tools / OS / Software / Hardware), UC Davis (laboratory / computer / research / language). Max 5–7 languages.
+- **Separator — CHANGED:** use **commas or bullets, NEVER pipes / vertical bars**. Auburn Engineering: a pipe-separated list is parsed by ATS as *one single skill*. *(Prior text said "comma/pipe-separated" — pipes are now explicitly banned.)* No tables, bars, icons, columns (ATS-breaking + reads as stuffing).
+- Top-5 hard skills should **also appear woven into experience bullets** — now **strongly confirmed by primary sources**, not just 3-0 in our sweep: Virginia Tech ("anything listed in skills will be looked for in the bullets — recruiters check when/where it was last used and how"), UVA, Auburn ("provide a timeframe"), Pitt ("validates/demonstrates the skill"). *(The stronger claim that the section outweighs bullets was refuted — it's duplication-helps, not section-wins.)*
+- Mirror JD spelling ("JavaScript" not "JS", "PostgreSQL" not "Postgres"). Modern ATS catch exact + some related phrases but synonym/abbreviation matching is **unreliable**, so exact phrasing is the safe hedge. **For acronym-heavy skills, include both forms** — e.g. "AWS (Amazon Web Services)", "SIEM (Security Information and Event Management)" (Virginia Tech) — so the résumé matches whichever the JD uses. Drop universal assumptions (Git, MS Office) unless named.
+- **Avoid keyword stuffing:** a long padded skills block helps a machine match but hurts human readers and trips stuffing penalties (scale.jobs; confirmed 3-0). Never dump every ATS-suggested keyword. The cap exists for this reason.
+- **Proficiency levels — optional, low-priority.** Some career centers (UC Davis, Auburn) allow "proficient / expert" labels *only when a genuinely high level is an advantage*. TAILOR generally **skips** these — proficiency isn't reliably derivable from the corpus and inventing it violates the truthfulness gate.
+- **⏳ Time-sensitive:** ATS are moving toward semantic/LLM matching, but as of 2026 it remains unreliable, so exact-mirroring still wins *today*. Most likely rule to change — revisit.
+
+Sources (2026-06-14 firecrawl+exa sweep, primary-weighted): [Zety 2024 — 93k-résumé study, avg 9.65/median 8.81, directors 19 vs devs 9], [Kickresume 2026 — 2.1M-CV study, median 5/avg 9], [UPenn Career Services], [Auburn Engineering CDCR — soft-skills-out, pipe-breaks-ATS], [Virginia Tech Career 2026 — grouping, acronym+full-term, skills-in-bullets], [UVA Engineering], [UC Davis Career Center], [UNC CS], [Harvard FAS — named grouping, primary], [UCSF Career — hard-dominant, primary], [scale.jobs — ATS scoring/stuffing], [Pitt Career Central — hard 60% vs soft 28% match]. Earlier 6-angle deep-research run + refuted-claims log: workflow `wf_30a119c9-306`.
 
 ## 7. Education (by career stage)
 
@@ -175,13 +182,26 @@ bullets:
   tense: { current_role: present_ok, past_roles: past }
 
 skills:
-  total: [8, 15]               # cap 20 for grouped tech
+  total: [15, 20]              # ⚖️ PRODUCT DECISION 2026-06-14 (Camren): raised from 8-15 for fuller resumes
+  # diverges from data (Zety 93k avg 9.65/median 8.81; Kickresume 2.1M median 5/avg 9). accepted tradeoff.
+  hard_cap: 22                 # grouped tech only
+  fill_rule: target_not_floor  # 🔒 fill 15-20 ONLY with corpus-defensible skills; truthfulness gate overrides count. NEVER pad.
+  target_by_seniority:         # scale within band (Zety: directors 19 vs devs 9). derive from profile; never pad.
+    thin_or_early: [10, 15]    # or fewer if that's all the corpus defensibly supports
+    mid_to_senior_tech: [15, 20]   # TAILOR ICP center
   categories: [2, 4]
-  hard_to_soft_ratio: "~70/30"
-  soft_skill_rule: "include only if named in JD"
+  category_scheme: derived_from_corpus_and_jd   # NOT a fixed template
+  composition: hard_dominant   # was ~70/30; no numeric ratio supported. strong primary backing (UPenn/Auburn/UNC)
+  soft_skill_rule: "include only if named in JD; else demonstrate in bullets"
   first_n_match_jd: 5
-  mirror_jd_spelling: true
+  duplicate_top5_in_bullets: true       # duplication section<->bullets is beneficial (VT/UVA/Auburn/Pitt)
+  mirror_jd_spelling: true     # safe hedge; ATS synonym matching unreliable (not absolute)
+  acronym_and_full_term: true  # e.g. "AWS (Amazon Web Services)" — match whichever the JD uses
+  separators: [comma, bullet]  # NEVER pipes/vertical bars — ATS reads a piped list as ONE skill (Auburn)
+  proficiency_labels: false    # skip — not reliably derivable from corpus; inventing it breaks truthfulness gate
   no_bars_or_tables: true
+  no_keyword_stuffing: true    # padded list helps machine, hurts human reader
+  # ⏳ revisit mirror_jd_spelling as ATS adopt semantic/LLM matching (2026+)
 
 education:
   placement_by_stage: { student: top, "2-5yr": below_exp, "5-15yr": below_exp, "15yr+": bottom_one_line }

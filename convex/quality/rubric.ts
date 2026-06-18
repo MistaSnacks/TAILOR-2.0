@@ -54,7 +54,7 @@ export interface DeterministicReport {
   summaryWords: number;
   summaryWordsOk: boolean; // 40..60
   skillsCount: number;
-  skillsCountOk: boolean; // 8..20
+  skillsCountOk: boolean; // 8..22 (target is 15–20, but floor stays tolerant: no-padding guardrail means honest corpus-limited resumes must not be penalized)
   score: number; // 0..100
 }
 
@@ -68,7 +68,7 @@ export function scoreDeterministic(r: ScorableResume): DeterministicReport {
   const summaryWords = r.summary.trim() ? r.summary.trim().split(/\s+/).length : 0;
   const summaryWordsOk = summaryWords >= 40 && summaryWords <= 60;
   const skillsCount = r.skills.length;
-  const skillsCountOk = skillsCount >= 8 && skillsCount <= 20;
+  const skillsCountOk = skillsCount >= 8 && skillsCount <= 22;
   const perRoleOverCap = r.experiences.filter((e) => e.highlights.length > 6).length;
   const bulletCapOk = bullets.length <= 18;
 

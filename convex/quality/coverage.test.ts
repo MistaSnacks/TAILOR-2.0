@@ -84,6 +84,72 @@ describe("diffCoverage", () => {
     expect(covered.length).toBe(1);
   });
 
+  it("keys coverage on atsTerms (the JD's literal term), not on a paraphrase in expectedMarkers", () => {
+    // The soft-skill ATS fix: "analytical skills" must show the JD term itself. A draft that has the
+    // evidence paraphrase ("data analysis") but not the literal ATS term ("analytical") is a GAP,
+    // because an external scanner credits the JD's word — not our paraphrase.
+    const d = {
+      summary: "Led data analysis and root cause analysis of fraud trends",
+      experiences: [{ company: "C", position: "P", highlights: [{ text: "Analyzed transaction patterns", type: "rephrase" }] }],
+      skills: [],
+      requirements: [],
+      keywords: [],
+    } as unknown as import("../llm/types").GeneratedResume;
+    const map: CoverageMap = [
+      { requirement: "Strong analytical skills", supportable: true, atsTerms: ["analytical"], expectedMarkers: ["data analysis", "root cause analysis", "fraud trends"] },
+    ];
+    const { covered, gaps } = diffCoverage(map, draftText(d));
+    expect(covered.length).toBe(0); // paraphrases present, but the JD term "analytical" is not
+    expect(gaps.map((i) => i.requirement)).toEqual(["Strong analytical skills"]);
+  });
+
+  it("atsTerms are OR-alternatives of one concept: any one (stem-tolerant) covers it", () => {
+    // Real false-negative the eval surfaced: a teamwork requirement marked uncovered though the résumé
+    // clearly shows it. atsTerms are synonyms — ANY appearing should cover — and "coordinating" must
+    // match "coordinated" (stemming). "collaboratively" appears verbatim; "coordinating"~"coordinated".
+    const d = {
+      summary: "",
+      experiences: [{ company: "C", position: "P", highlights: [
+        { text: "Coordinated with kitchen and floor staff and worked collaboratively with the team", type: "rephrase" },
+      ] }],
+      skills: [],
+      requirements: [],
+      keywords: [],
+    } as unknown as import("../llm/types").GeneratedResume;
+    const map: CoverageMap = [
+      { requirement: "Coordinating with staff / teamwork", supportable: true, atsTerms: ["coordinating", "teamwork", "collaboratively"], expectedMarkers: [] },
+    ];
+    const { covered } = diffCoverage(map, draftText(d));
+    expect(covered.length).toBe(1);
+  });
+
+  it("stem matching tolerates inflections but not near-homographs (analytical != analysis)", () => {
+    const mk = (text: string) => ({ summary: text, experiences: [], skills: [], requirements: [], keywords: [] }) as unknown as import("../llm/types").GeneratedResume;
+    const item = (t: string): CoverageMap => [{ requirement: "x", supportable: true, atsTerms: [t], expectedMarkers: [] }];
+    // inflection: 'communication' should match 'communicated'
+    expect(diffCoverage(item("communication"), draftText(mk("communicated findings to leadership"))).covered.length).toBe(1);
+    // near-homograph: 'analytical' must NOT be satisfied by 'analysis' alone (they diverge at 5 chars)
+    expect(diffCoverage(item("analytical"), draftText(mk("led data analysis of fraud trends"))).covered.length).toBe(0);
+    // acronym (<6 chars) is exact-only: 'aml' present, 'kyc' absent
+    expect(diffCoverage(item("aml"), draftText(mk("handled aml investigations"))).covered.length).toBe(1);
+    expect(diffCoverage(item("kyc"), draftText(mk("handled aml investigations"))).covered.length).toBe(0);
+  });
+
+  it("with atsTerms present, the JD term itself satisfies coverage", () => {
+    const d = {
+      summary: "Applied analytical judgment to fraud cases",
+      experiences: [{ company: "C", position: "P", highlights: [{ text: "x", type: "rephrase" }] }],
+      skills: [],
+      requirements: [],
+      keywords: [],
+    } as unknown as import("../llm/types").GeneratedResume;
+    const map: CoverageMap = [
+      { requirement: "Strong analytical skills", supportable: true, atsTerms: ["analytical"], expectedMarkers: ["data analysis"] },
+    ];
+    const { covered } = diffCoverage(map, draftText(d));
+    expect(covered.length).toBe(1);
+  });
+
   it("handles empty draft and empty map without error", () => {
     const empty = { summary: "", experiences: [], skills: [], requirements: [], keywords: [] } as unknown as import("../llm/types").GeneratedResume;
     expect(draftText(empty)).toBe("");

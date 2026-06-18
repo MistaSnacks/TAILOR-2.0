@@ -69,6 +69,7 @@ export const saveFitting = internalMutation({
           requirement: v.string(),
           supportable: v.boolean(),
           evidenceRef: v.optional(v.string()),
+          atsTerms: v.optional(v.array(v.string())), // JD's literal scannable term(s); coverage is keyed on these
           expectedMarkers: v.array(v.string()),
         }),
       ),
