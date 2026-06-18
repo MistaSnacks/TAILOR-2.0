@@ -1,11 +1,11 @@
 import { GeminiGenerator, GeminiPlanner, GeminiReviser } from "../convex/llm/gemini";
 import { runCoverageLoop } from "../convex/quality/loop";
 import { scoreDeterministic, type ScorableResume } from "../convex/quality/rubric";
-import { draftText } from "../convex/quality/coverage";
+import { diffCoverage, draftText } from "../convex/quality/coverage";
 import { coverageHitRate, jdEcho } from "./scorers";
 import { ClaudeCliVerifier } from "./claudeVerifier";
 import type { EvalFixture } from "./fixtures";
-import type { FixtureRow } from "./scorecard";
+import type { FixtureRow, FixtureArtifact } from "./scorecard";
 
 const planner = new GeminiPlanner();
 const generator = new GeminiGenerator();
@@ -20,8 +20,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * rather than silently returning an error row. A genuine pipeline outcome of "not-ready" is NOT
  * an error and is returned as-is.
  */
-export async function scoreFixture(fx: EvalFixture, maxAttempts = 3): Promise<FixtureRow> {
-  let lastErr: unknown;
+export interface ScoredFixture { row: FixtureRow; artifact: FixtureArtifact }
+
+export async function scoreFixture(fx: EvalFixture, maxAttempts = 3): Promise<ScoredFixture> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const loop = await runCoverageLoop({ jobText: fx.jobText, profile: fx.profile, planner, generator, reviser, verifier });
@@ -35,17 +36,26 @@ export async function scoreFixture(fx: EvalFixture, maxAttempts = 3): Promise<Fi
       const det = scoreDeterministic(scorable);
       const echo = jdEcho(bullets, fx.jobText);
       const v = loop.verification;
-      return {
+      const dtext = draftText(d);
+      const { gaps } = diffCoverage(loop.coverageMap, dtext);
+      const row: FixtureRow = {
         id: fx.id, source: fx.source, status: loop.status,
         gatePass: !!(v.truthfulnessPass && v.fidelityPass && v.consistencyPass),
-        coverageHitRate: coverageHitRate(loop.coverageMap, draftText(d)),
+        coverageHitRate: coverageHitRate(loop.coverageMap, dtext),
         jdEchoRate: echo.jdEchoRate, longestEcho: echo.longestEcho,
         rubricScore: det.score,
         longBulletRate: det.totalBullets ? det.longBulletHits.length / det.totalBullets : 0,
         skillsCount: det.skillsCount, rounds: loop.rounds,
       };
+      const artifact: FixtureArtifact = {
+        id: fx.id, source: fx.source, status: loop.status, jobText: fx.jobText,
+        summary: d.summary ?? "",
+        experiences: d.experiences.map((e) => ({ company: e.company, position: e.position, highlights: e.highlights.map((h) => h.text) })),
+        skills: d.skills ?? [],
+        missedRequirements: gaps.map((g) => `${g.requirement} [wanted: ${(g.atsTerms ?? []).join("/")}]`),
+      };
+      return { row, artifact };
     } catch (err) {
-      lastErr = err;
       const msg = (err as Error)?.message?.slice(0, 180) ?? String(err);
       if (attempt < maxAttempts) {
         console.error(`\n    ${fx.id} attempt ${attempt} failed (${msg}); backing off ${attempt * 20}s...`);
@@ -56,8 +66,14 @@ export async function scoreFixture(fx: EvalFixture, maxAttempts = 3): Promise<Fi
     }
   }
   return {
-    id: fx.id, source: fx.source, status: "error",
-    gatePass: false, coverageHitRate: 0, jdEchoRate: 0, longestEcho: 0,
-    rubricScore: 0, longBulletRate: 0, skillsCount: 0, rounds: 0,
+    row: {
+      id: fx.id, source: fx.source, status: "error",
+      gatePass: false, coverageHitRate: 0, jdEchoRate: 0, longestEcho: 0,
+      rubricScore: 0, longBulletRate: 0, skillsCount: 0, rounds: 0,
+    },
+    artifact: {
+      id: fx.id, source: fx.source, status: "error", jobText: fx.jobText,
+      summary: "", experiences: [], skills: [], missedRequirements: [],
+    },
   };
 }

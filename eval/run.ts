@@ -1,7 +1,7 @@
 import { loadEnvLocal } from "./env";
 import { loadFixtures } from "./fixtures";
 import { scoreFixture } from "./runner";
-import { aggregate, diffBaseline, writeScorecard, readBaseline, type FixtureRow } from "./scorecard";
+import { aggregate, diffBaseline, writeScorecard, writeArtifacts, readBaseline, type FixtureRow, type FixtureArtifact } from "./scorecard";
 
 function arg(name: string, def: string): string {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`)) ?? "";
@@ -22,18 +22,22 @@ async function main() {
   console.log(`Running pipeline over ${fixtures.length} fixtures (this is slow)...`);
 
   const rows: FixtureRow[] = [];
+  const artifacts: FixtureArtifact[] = [];
   for (const [i, fx] of fixtures.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, 5_000)); // spread LLM load across fixtures
     process.stdout.write(`  [${i + 1}/${fixtures.length}] ${fx.id} (${fx.source})... `);
-    const row = await scoreFixture(fx);
+    const { row, artifact } = await scoreFixture(fx);
     rows.push(row);
+    artifacts.push(artifact);
     console.log(row.status === "error" ? "ERROR" : `gate=${row.gatePass} cov=${row.coverageHitRate.toFixed(2)} echo=${row.jdEchoRate.toFixed(2)} rubric=${row.rubricScore}`);
   }
 
   const agg = aggregate(rows);
   const path = writeScorecard({ ranAt, aggregate: agg, perFixture: rows });
+  const artifactsPath = writeArtifacts(ranAt, artifacts);
   console.log("\n=== AGGREGATE ===");
   console.table(agg);
+  console.log(`\nScorecard: ${path}\nRésumés (reviewable): ${artifactsPath}`);
 
   const base = readBaseline();
   if (!base) {

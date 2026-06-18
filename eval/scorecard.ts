@@ -67,6 +67,29 @@ export function writeScorecard(card: Scorecard, dir = resolve(process.cwd(), "ev
   return path;
 }
 
+/**
+ * The reviewable artifact behind each score: the generated résumé prose + the JD it was
+ * tailored to + which supportable JD requirements it failed to surface. Persisted separately
+ * from the metrics scorecard so the baseline-diff file stays lean while every score is auditable.
+ */
+export interface FixtureArtifact {
+  id: string;
+  source: "real" | "hf";
+  status: "ready" | "not-ready" | "error";
+  jobText: string;
+  summary: string;
+  experiences: { company: string; position: string; highlights: string[] }[];
+  skills: string[];
+  missedRequirements: string[];
+}
+
+export function writeArtifacts(ranAt: string, artifacts: FixtureArtifact[], dir = resolve(process.cwd(), "eval/results")): string {
+  const safe = ranAt.replace(/[:.]/g, "-");
+  const path = resolve(dir, `${safe}.artifacts.json`);
+  writeFileSync(path, JSON.stringify(artifacts, null, 2));
+  return path;
+}
+
 export function readBaseline(dir = resolve(process.cwd(), "eval/results")): Aggregate | null {
   try {
     return (JSON.parse(readFileSync(resolve(dir, "baseline.json"), "utf8")) as Scorecard).aggregate;
